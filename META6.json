@@ -1,0 +1,23 @@
+{
+  "name": "DB::Migration::Declare",
+  "description": "Specify database migrations using a Raku DSL. Currently Postgres only, and very much a BETA.",
+  "version": "0.1",
+  "perl": "6.d",
+  "authors": [
+    "Jonathan Worthington <jnthn@jnthn.net>"
+  ],
+  "auth": "zef:jnthn",
+  "depends": [],
+  "build-depends": [],
+  "test-depends": [],
+  "provides": {
+    "DB::Migration::Declare": "lib/DB/Migration/Declare.rakumod",
+    "DB::Migration::Declare::ColumnType": "lib/DB/Migration/Declare/ColumnType.rakumod",
+    "DB::Migration::Declare::Database": "lib/DB/Migration/Declare/Database.rakumod",
+    "DB::Migration::Declare::Model": "lib/DB/Migration/Declare/Model.rakumod",
+    "DB::Migration::Declare::SQLLiteral": "lib/DB/Migration/Declare/SQLLiteral.rakumod"
+  },
+  "resources": [],
+  "license": "Write me!",
+  "source-url": "Write me!"
+}
