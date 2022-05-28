@@ -1,5 +1,7 @@
 use v6.d;
 use DB::Migration::Declare::ColumnType;
+use DB::Migration::Declare::Problem;
+use DB::Migration::Declare::Schema;
 unit module DB::Migraion::Declare::Model;
 
 #| A step in a migration.
@@ -68,6 +70,15 @@ class CreateTable is MigrationStep {
     method add-step(CreateTableStep $step --> Nil) {
         @!steps.push($step);
     }
+
+    method apply-to(DB::Migration::Declare::Schema $schema, @problems --> Nil) {
+        if $schema.has-table($!name) {
+            @problems.push: DB::Migration::Declare::Problem::DuplicateTable.new:
+                    :$!name;
+            return;
+        }
+        my $table = $schema.declare-table($!name);
+    }
 }
 
 #| A table alteration.
@@ -87,10 +98,41 @@ class DropTable is MigrationStep {
 
 #| A migration, consisting of a step of steps.
 class Migration {
+    has Str $.file is required;
+    has Int $.line is required;
     has Str $.description is required;
     has MigrationStep @!steps;
 
     method add-step(MigrationStep $step --> Nil) {
         @!steps.push($step);
+    }
+
+    method apply-to(DB::Migration::Declare::Schema $schema --> Nil) {
+        my @problems;
+        for @!steps {
+            .apply-to($schema, @problems);
+        }
+        if @problems {
+            die X::DB::Migration::Declare::MigrationProblem.new:
+                    :@problems, :migration-description($!description),
+                    :migration-file($!file), :migration-line($!line);
+        }
+    }
+}
+
+#| A list of migrations to be applied in order.
+class MigrationList {
+    has Migration @!migrations;
+
+    method add-migration(Migration $migration --> Nil) {
+        @!migrations.push($migration);
+    }
+
+    method build-schema(--> DB::Migration::Declare::Schema) {
+        my $schema = DB::Migration::Declare::Schema.new;
+        for @!migrations {
+            .apply-to($schema);
+        }
+        $schema
     }
 }

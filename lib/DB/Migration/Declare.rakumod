@@ -3,9 +3,16 @@ use DB::Migration::Declare::Model;
 use DB::Migration::Declare::SQLLiteral;
 
 sub migration(Str $description, &spec --> Nil) is export {
-    my $*DMD-MODEL = DB::Migraion::Declare::Model::Migration.new(:$description);
-    spec();
-    # XXX Collect
+    with $*DMD-MIGRATION-LIST -> $list {
+        my $file = &spec.?file // 'Unknwon';
+        my $line = &spec.?line // 0;
+        my $*DMD-MODEL = DB::Migraion::Declare::Model::Migration.new(:$description, :$file, :$line);
+        spec();
+        $list.add-migration($*DMD-MODEL);
+    }
+    else {
+        die "Can only use `migration` when a migration list is set up to collect them";
+    }
 }
 
 sub create-table(Str $name, &spec --> Nil) is export {
