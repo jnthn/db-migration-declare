@@ -13,6 +13,19 @@ class DB::Migration::Declare::Problem::DuplicateTable does DB::Migration::Declar
     }
 }
 
+#| An action involving a table that does not exist.
+class DB::Migration::Declare::Problem::NoSuchTable does DB::Migration::Declare::Problem {
+    #| The table name.
+    has Str $.name is required;
+
+    #| The action we were trying to perform.
+    has Str $.action is required;
+
+    method message(--> Str) {
+        "Cannot $!action non-existant table '$!name'"
+    }
+}
+
 class X::DB::Migration::Declare::MigrationProblem is Exception {
     #| The description of the migration with a problem.
     has Str $.migration-description is required;

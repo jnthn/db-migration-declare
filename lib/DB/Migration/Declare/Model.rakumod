@@ -94,6 +94,16 @@ class AlterTable is MigrationStep {
 #| A table drop.
 class DropTable is MigrationStep {
     has Str $.name is required;
+
+    method apply-to(DB::Migration::Declare::Schema $schema, @problems --> Nil) {
+        if $schema.has-table($!name) {
+            $schema.remove-table($!name);
+        }
+        else {
+            @problems.push: DB::Migration::Declare::Problem::NoSuchTable.new:
+                    :action('drop'), :$!name;
+        }
+    }
 }
 
 #| A migration, consisting of a step of steps.

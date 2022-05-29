@@ -76,4 +76,77 @@ throws-like
         },
         'Duplicate table name accross migrations';
 
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                }
+                migration 'No more customers', {
+                    drop-table 'customers';
+                }
+                migration 'New customers', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                }
+            }
+        },
+        'Cam create a table agian if an earlier migration dropped it';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                }
+                migration 'Drop products', {
+                    drop-table 'products';
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Drop products',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSuchTable &&
+                    .[0].name eq 'products' &&
+                    .[0].action eq 'drop'
+        },
+        'Cannot drop a table that never existed';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                }
+                migration 'Drop customers', {
+                    drop-table 'customers';
+                }
+                migration 'Drop customers again', {
+                    drop-table 'customers';
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Drop customers again',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSuchTable &&
+                    .[0].name eq 'customers' &&
+                    .[0].action eq 'drop'
+        },
+        'Cannot drop the same table twice';
+
 done-testing;

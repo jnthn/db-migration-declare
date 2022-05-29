@@ -60,4 +60,9 @@ class DB::Migration::Declare::Schema {
         %!tables{$name} = $table;
         $table
     }
+
+    #| Remove a table.
+    method remove-table(Str $name --> Nil) {
+        %!tables{$name}:delete // fail "No such table '$name'";
+    }
 }
