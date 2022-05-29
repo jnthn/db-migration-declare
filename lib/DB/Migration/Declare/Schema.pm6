@@ -42,6 +42,12 @@ class DB::Migration::Declare::Schema {
             %!column-lookup{$name} = @!columns.end;
             return $column;
         }
+
+        #| Remove a column.
+        method remove-column(Str $name --> Nil) {
+            my $index = %!column-lookup{$name}:delete // fail "No such column '$name'";
+            @!columns.splice($index, 1);
+        }
     }
 
     #| Lookup of the tables, keyed on name.

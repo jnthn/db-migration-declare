@@ -223,4 +223,64 @@ throws-like
         },
         'Cannot alter non-existent table';
 
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                }
+                migration 'Drop country', {
+                    alter-table 'customers', {
+                        drop-column 'country';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Drop country',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSucColumn &&
+                    .[0].table eq 'customers' &&
+                    .[0].name eq 'country' &&
+                    .[0].action eq 'drop'
+        },
+        'Dropping column that never existed';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                        add-column 'country', text(), :!null;
+                    }
+                }
+                migration 'Drop country', {
+                    alter-table 'customers', {
+                        drop-column 'country';
+                    }
+                }
+                migration 'Drop name', {
+                    alter-table 'customers', {
+                        drop-column 'country';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Drop name',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSucColumn &&
+                    .[0].table eq 'customers' &&
+                    .[0].name eq 'country' &&
+                    .[0].action eq 'drop'
+        },
+        'Dropping column that was already dropped';
+
 done-testing;

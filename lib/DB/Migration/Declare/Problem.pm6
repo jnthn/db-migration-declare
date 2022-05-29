@@ -22,7 +22,7 @@ class DB::Migration::Declare::Problem::NoSuchTable does DB::Migration::Declare::
     has Str $.action is required;
 
     method message(--> Str) {
-        "Cannot $!action non-existant table '$!name'"
+        "Cannot $!action non-existent table '$!name'"
     }
 }
 
@@ -36,6 +36,22 @@ class DB::Migration::Declare::Problem::DuplicateColumn does DB::Migration::Decla
 
     method message(--> Str) {
         "The column '$!name' already exists in the table '$!table'"
+    }
+}
+
+#| An action involving a column that does not exist.
+class DB::Migration::Declare::Problem::NoSucColumn does DB::Migration::Declare::Problem {
+    #| The table name.
+    has Str $.table is required;
+
+    #| The column name.
+    has Str $.name is required;
+
+    #| The action we were trying to perform.
+    has Str $.action is required;
+
+    method message(--> Str) {
+        "Cannot $!action non-existent columnb '$!name' of table '$!table'"
     }
 }
 

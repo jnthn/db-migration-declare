@@ -44,6 +44,18 @@ class AddColumn does CreateOrAlterTableStep {
 #| Dropping a column.
 class DropColumn does AlterTableStep {
     has Str $.name is required;
+
+    method apply-to(DB::Migration::Declare::Schema $schema,
+                    DB::Migration::Declare::Schema::Table $table,
+                    @problems --> Nil) {
+        if $table.has-column($!name) {
+            $table.remove-column($!name);
+        }
+        else {
+            @problems.push: DB::Migration::Declare::Problem::NoSucColumn.new:
+                    :table($table.name), :$!name, :action('drop');
+        }
+    }
 }
 
 #| Specifying the primary key.
@@ -105,7 +117,7 @@ class CreateTable is MigrationStep {
 #| A table alteration.
 class AlterTable is MigrationStep {
     has Str $.name is required;
-    has CreateTableStep @!steps;
+    has AlterTableStep @!steps;
 
     method add-step(AlterTableStep $step --> Nil) {
         @!steps.push($step);
