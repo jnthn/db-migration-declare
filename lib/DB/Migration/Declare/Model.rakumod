@@ -118,7 +118,8 @@ class AlterTable is MigrationStep {
             }
         }
         else {
-            ??? 'TODO';
+            @problems.push: DB::Migration::Declare::Problem::NoSuchTable.new:
+                    :action('alter'), :$!name;
         }
     }
 }

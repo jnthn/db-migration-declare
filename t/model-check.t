@@ -197,4 +197,30 @@ throws-like
         },
         'Duplicate column added when altering table';
 
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                }
+                migration 'Add country', {
+                    alter-table 'customer', {
+                        add-column 'country', text(), :!null;
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Add country',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSuchTable &&
+                    .[0].name eq 'customer' &&
+                    .[0].action eq 'alter'
+        },
+        'Cannot alter non-existent table';
+
 done-testing;
