@@ -26,6 +26,19 @@ class DB::Migration::Declare::Problem::NoSuchTable does DB::Migration::Declare::
     }
 }
 
+#| Duplicate creation of the same column.
+class DB::Migration::Declare::Problem::DuplicateColumn does DB::Migration::Declare::Problem {
+    #| The table name.
+    has Str $.table is required;
+
+    #| The column name.
+    has Str $.name is required;
+
+    method message(--> Str) {
+        "The column '$!name' already exists in the table '$!table'"
+    }
+}
+
 class X::DB::Migration::Declare::MigrationProblem is Exception {
     #| The description of the migration with a problem.
     has Str $.migration-description is required;

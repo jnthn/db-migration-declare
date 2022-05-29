@@ -27,6 +27,18 @@ class AddColumn does CreateOrAlterTableStep {
     has Bool $.null is required;
     has Bool $.increments is required;
     has Any $.default;
+
+    method apply-to(DB::Migration::Declare::Schema $schema,
+                    DB::Migration::Declare::Schema::Table $table,
+                    @problems --> Nil) {
+        if $table.has-column($!name) {
+            @problems.push: DB::Migration::Declare::Problem::DuplicateColumn.new:
+                    :table($table.name), :$!name;
+        }
+        else {
+            $table.declare-column($!name);
+        }
+    }
 }
 
 #| Dropping a column.
@@ -37,6 +49,12 @@ class DropColumn does AlterTableStep {
 #| Specifying the primary key.
 class PrimaryKey does CreateOrAlterTableStep {
     has Str @.column-names is required;
+
+    method apply-to(DB::Migration::Declare::Schema $schema,
+                    DB::Migration::Declare::Schema::Table $table,
+                    @problems --> Nil) {
+        ??? 'TODO'
+    }
 }
 
 #| Add a unique key.
@@ -78,6 +96,9 @@ class CreateTable is MigrationStep {
             return;
         }
         my $table = $schema.declare-table($!name);
+        for @!steps {
+            .apply-to($schema, $table, @problems);
+        }
     }
 }
 
@@ -88,6 +109,17 @@ class AlterTable is MigrationStep {
 
     method add-step(AlterTableStep $step --> Nil) {
         @!steps.push($step);
+    }
+
+    method apply-to(DB::Migration::Declare::Schema $schema, @problems --> Nil) {
+        with $schema.table($!name) -> $table {
+            for @!steps {
+                .apply-to($schema, $table, @problems);
+            }
+        }
+        else {
+            ??? 'TODO';
+        }
     }
 }
 

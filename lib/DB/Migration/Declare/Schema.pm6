@@ -31,7 +31,16 @@ class DB::Migration::Declare::Schema {
 
         #| Look up a column by name.
         method column(Str $name --> Column) {
-            %!column-lookup{$name} // fail "No such column '$name'"
+            @!columns[%!column-lookup{$name}] // fail "No such column '$name'"
+        }
+
+        #| Declare a new column in the table.
+        method declare-column(Str $name --> Column) {
+            fail "Column '$name' already in schema" if %!column-lookup{$name}:exists;
+            my $column = Column.new(:$name);
+            @!columns.push($column);
+            %!column-lookup{$name} = @!columns.end;
+            return $column;
         }
     }
 

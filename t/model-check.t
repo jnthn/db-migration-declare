@@ -149,4 +149,52 @@ throws-like
         },
         'Cannot drop the same table twice';
 
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                        add-column 'name', text(), :!null;
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Setup',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::DuplicateColumn &&
+                    .[0].table eq 'customers' &&
+                    .[0].name eq 'name'
+        },
+        'Duplicate column in initial table creationn';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                }
+                migration 'Add country', {
+                    alter-table 'customers', {
+                        add-column 'name', text(), :!null;
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Add country',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::DuplicateColumn &&
+                    .[0].table eq 'customers' &&
+                    .[0].name eq 'name'
+        },
+        'Duplicate column added when altering table';
+
 done-testing;
