@@ -19,6 +19,12 @@ class DB::Migration::Declare::Schema {
         #| Lookup of the columns by name.
         has Int %!column-lookup;
 
+        #| The column(s) making up the primary key, if any.
+        has Str @!primary-key-columns;
+
+        #| Lists of columns making up unique keys.
+        has List @!unique-key-sets;
+
         #| Get the columns that are part of this table.
         method columns() {
             @!columns.List
@@ -47,6 +53,27 @@ class DB::Migration::Declare::Schema {
         method remove-column(Str $name --> Nil) {
             my $index = %!column-lookup{$name}:delete // fail "No such column '$name'";
             @!columns.splice($index, 1);
+        }
+
+        #| Set the primary key.
+        method set-primary-key(@columns --> Nil) {
+            @!primary-key-columns = @columns;
+        }
+
+        #| Check if the table has a primary key.
+        method has-primary-key(--> Bool) {
+            ?@!primary-key-columns
+        }
+
+        #| Add a unique key column set.
+        method add-unique-key(@columns --> Nil) {
+            @!unique-key-sets.push(@columns.List);
+        }
+
+        #| Check if the table has a given unique key.
+        method has-unique-key(@columns --> Bool) {
+            my \sorted = @columns.sort.List;
+            ?@!unique-key-sets.map(*.sort.List).first(sorted)
         }
     }
 

@@ -55,6 +55,29 @@ class DB::Migration::Declare::Problem::NoSucColumn does DB::Migration::Declare::
     }
 }
 
+#| An attempt to give a table more than one primary key.
+class DB::Migration::Declare::Problem::MultiplePrimaryKeys does DB::Migration::Declare::Problem {
+    #| The table name.
+    has Str $.name is required;
+
+    method message(--> Str) {
+        "Table '$!name' already has a primary key"
+    }
+}
+
+#| An attempt to give a table a duplicate unique key.
+class DB::Migration::Declare::Problem::DuplicateUniqueKey does DB::Migration::Declare::Problem {
+    #| The table name.
+    has Str $.table is required;
+
+    #| The columns.
+    has @.columns;
+
+    method message(--> Str) {
+        "Table '$!table' already has a unique key on @!columns.map({ "'$_'" }).join(', ')"
+    }
+}
+
 class X::DB::Migration::Declare::MigrationProblem is Exception {
     #| The description of the migration with a problem.
     has Str $.migration-description is required;

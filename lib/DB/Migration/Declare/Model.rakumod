@@ -65,13 +65,39 @@ class PrimaryKey does CreateOrAlterTableStep {
     method apply-to(DB::Migration::Declare::Schema $schema,
                     DB::Migration::Declare::Schema::Table $table,
                     @problems --> Nil) {
-        ??? 'TODO'
+        if $table.has-primary-key {
+            @problems.push: DB::Migration::Declare::Problem::MultiplePrimaryKeys.new(:name($table.name));
+            return;
+        }
+        for @!column-names {
+            unless $table.has-column($_) {
+                @problems.push: DB::Migration::Declare::Problem::NoSucColumn.new:
+                        :table($table.name), :name($_), :action('create a primary key with');
+            }
+        }
+        $table.set-primary-key(@!column-names);
     }
 }
 
 #| Add a unique key.
 class UniqueKey does CreateOrAlterTableStep {
     has Str @.column-names is required;
+
+    method apply-to(DB::Migration::Declare::Schema $schema,
+                    DB::Migration::Declare::Schema::Table $table,
+                    @problems --> Nil) {
+        if $table.has-unique-key(@!column-names) {
+            @problems.push: DB::Migration::Declare::Problem::DuplicateUniqueKey.new:
+                    :table($table.name), :columns(@!column-names);
+        }
+        for @!column-names {
+            unless $table.has-column($_) {
+                @problems.push: DB::Migration::Declare::Problem::NoSucColumn.new:
+                        :table($table.name), :name($_), :action('create a unique key with');
+            }
+        }
+        $table.add-unique-key(@!column-names);
+    }
 }
 
 #| Add a foreign key.
