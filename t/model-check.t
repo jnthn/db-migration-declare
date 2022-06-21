@@ -370,7 +370,7 @@ lives-ok
                 }
             }
         },
-        'Can add a primary ken in an alteration to a table without one';
+        'Can add a primary key in an alteration to a table without one';
 
 throws-like
         {
@@ -517,5 +517,402 @@ lives-ok
             }
         },
         'Composite unique key OK even if unique key on another column';
+
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'email', text(), :!null;
+                        unique-key 'email';
+                    }
+                    create-table 'projects', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'customer', integer(), :!null;
+                        add-column 'title', text(), :!null;
+                        foriegn-key from => 'customer', to => 'id', table => 'customers';
+                    }
+                }
+            }
+        },
+        'Can create a foreign key referring to a table created in this migration step';
+
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'email', text(), :!null;
+                        unique-key 'email';
+                    }
+                }
+                migration 'Add projects', {
+                    create-table 'projects', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'customer', integer(), :!null;
+                        add-column 'title', text(), :!null;
+                        foriegn-key from => 'customer', to => 'id', table => 'customers';
+                    }
+                }
+            }
+        },
+        'Can create a foreign key referring to a table created in an earlier migration step';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'email', text(), :!null;
+                        unique-key 'email';
+                    }
+                    create-table 'projects', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'customer', integer(), :!null;
+                        add-column 'title', text(), :!null;
+                        foriegn-key from => 'customer', to => 'id', table => 'customer';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Setup',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSuchTable &&
+                    .[0].name eq 'customer' &&
+                    .[0].action eq 'have a foreign key reference'
+        },
+        'Cannot have a foreign key referencing a table that does not exist';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'email', text(), :!null;
+                        unique-key 'email';
+                    }
+                    create-table 'projects', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'customer', integer(), :!null;
+                        add-column 'title', text(), :!null;
+                        foriegn-key from => 'customers', to => 'id', table => 'customers';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Setup',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSucColumn &&
+                    .[0].table eq 'projects' &&
+                    .[0].name eq 'customers' &&
+                    .[0].action eq 'add a foreign key to'
+        },
+        'Cannot have a foreign key from a column that does not exist';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'email', text(), :!null;
+                        unique-key 'email';
+                    }
+                    create-table 'projects', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'customer', integer(), :!null;
+                        add-column 'title', text(), :!null;
+                        foriegn-key from => 'customer', to => 'di', table => 'customers';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Setup',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSucColumn &&
+                    .[0].table eq 'customers' &&
+                    .[0].name eq 'di' &&
+                    .[0].action eq 'have a foreign key referencing'
+        },
+        'Cannot have a foreign key to a column that does not exist';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'email', text(), :!null;
+                        unique-key 'email';
+                    }
+                    create-table 'products', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                    create-table 'projects', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'customer', integer(), :!null;
+                        add-column 'title', text(), :!null;
+                        add-column 'product', text(), :!null;
+                        foriegn-key from => 'customer', to => 'id', table => 'customers';
+                        foriegn-key from => 'customer', to => 'id', table => 'products';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Setup',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::DuplicateForeignKey &&
+                    .[0].table eq 'projects' &&
+                    .[0].columns eqv ['customer']
+        },
+        'Cannot have two foreign keys on one source column';
+
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'employees', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                        add-column 'manager', integer();
+                        foriegn-key from => 'manager', table => 'employees', to => 'id'
+                    }
+                }
+            }
+        },
+        'Foreign key within table is OK';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'employees', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                        add-column 'manager', integer();
+                        foriegn-key from => 'manager', table => 'employees', to => 'manager'
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Setup',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::IdentityForeignKey &&
+                    .[0].table eq 'employees' &&
+                    .[0].columns eqv ['manager']
+        },
+        'Cannot have a foreign key pointing to the same column';
+
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'region', integer(), :!null;
+                        add-column 'name', varchar(64), :!null;
+                        unique-key 'region', 'name';
+                    }
+                }
+                migration 'Add projects', {
+                    create-table 'projects', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'customer_region', integer(), :!null;
+                        add-column 'customer_name', varchar(64), :!null;
+                        add-column 'title', text(), :!null;
+                        foriegn-key from => ['customer_region', 'customer_name'], to => ['region', 'name'], table => 'customers';
+                    }
+                }
+            }
+        },
+        'Composite foreign keys are handled fine';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'region', integer(), :!null;
+                        add-column 'name', varchar(64), :!null;
+                        unique-key 'region', 'name';
+                    }
+                }
+                migration 'Add projects', {
+                    create-table 'projects', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'customer_region', integer(), :!null;
+                        add-column 'customer_name', varchar(64), :!null;
+                        add-column 'title', text(), :!null;
+                        foriegn-key from => ['customer_region', 'customer_name'], to => ['region', 'name'], table => 'customurs';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Add projects',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSuchTable &&
+                    .[0].name eq 'customurs' &&
+                    .[0].action eq 'have a foreign key reference'
+        },
+        'Cannot have a foreign key referencing a table that does not exist (composite)';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'region', integer(), :!null;
+                        add-column 'name', varchar(64), :!null;
+                        unique-key 'region', 'name';
+                    }
+                }
+                migration 'Add projects', {
+                    create-table 'projects', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'customer_region', integer(), :!null;
+                        add-column 'customer_name', varchar(64), :!null;
+                        add-column 'title', text(), :!null;
+                        foriegn-key from => ['customer_region', 'custom_name'], to => ['region', 'name'], table => 'customers';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Add projects',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSucColumn &&
+                    .[0].table eq 'projects' &&
+                    .[0].name eq 'custom_name' &&
+                    .[0].action eq 'add a foreign key to'
+        },
+        'Cannot have a foreign key from a column that does not exist (composite)';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'region', integer(), :!null;
+                        add-column 'name', varchar(64), :!null;
+                        unique-key 'region', 'name';
+                    }
+                }
+                migration 'Add projects', {
+                    create-table 'projects', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'customer_region', integer(), :!null;
+                        add-column 'customer_name', varchar(64), :!null;
+                        add-column 'title', text(), :!null;
+                        foriegn-key from => ['customer_region', 'customer_name'], to => ['region', 'namen'], table => 'customers';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Add projects',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSucColumn &&
+                    .[0].table eq 'customers' &&
+                    .[0].name eq 'namen' &&
+                    .[0].action eq 'have a foreign key referencing'
+        },
+        'Cannot have a foreign key to a column that does not exist (composite)';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'region', integer(), :!null;
+                        add-column 'name', varchar(64), :!null;
+                        unique-key 'region', 'name';
+                    }
+                }
+                migration 'Add projects', {
+                    create-table 'projects', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'customer_region', integer(), :!null;
+                        add-column 'customer_name', varchar(64), :!null;
+                        add-column 'title', text(), :!null;
+                        foriegn-key from => ['customer_region', 'customer_name'], to => ['region', 'name'], table => 'customers';
+                        foriegn-key from => ['customer_name', 'customer_region'], to => ['name', 'region'], table => 'customers';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Add projects',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::DuplicateForeignKey &&
+                    .[0].table eq 'projects' &&
+                    .[0].columns.sort eqv ['customer_name', 'customer_region'].sort
+        },
+        'Cannot have two foreign keys on the same source column tuple';
+
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'employees', {
+                        add-column 'ssid', integer(), :!null, :primary;
+                        add-column 'country', char(2), :!null, :primary;
+                        add-column 'name', text(), :!null;
+                        add-column 'manager_ssid', integer();
+                        add-column 'manager_country', integer();
+                        foriegn-key from => ['manager_ssid', 'manager_country'], table => 'employees', to => ['ssid', 'country']
+                    }
+                }
+            }
+        },
+        'Composite foreign key within table is OK';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'employees', {
+                        add-column 'ssid', integer(), :!null, :primary;
+                        add-column 'country', char(2), :!null, :primary;
+                        add-column 'name', text(), :!null;
+                        add-column 'manager_ssid', integer();
+                        add-column 'manager_country', integer();
+                        foriegn-key from => ['manager_ssid', 'manager_country'], table => 'employees', to => ['manager_ssid', 'manager_country']
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Setup',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::IdentityForeignKey &&
+                    .[0].table eq 'employees' &&
+                    .[0].columns eqv ['manager_ssid', 'manager_country']
+        },
+        'Cannot have a composite foreign key pointing to the same columns';
 
 done-testing;

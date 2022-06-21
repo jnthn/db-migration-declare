@@ -116,6 +116,40 @@ class ForeignKey does CreateOrAlterTableStep {
             die "Foreign key cannot both restrict and cascade";
         }
     }
+
+    method apply-to(DB::Migration::Declare::Schema $schema,
+                    DB::Migration::Declare::Schema::Table $table,
+                    @problems --> Nil) {
+        with $schema.table($!table) -> $target-table {
+            for @!from -> Str $from {
+                unless $table.has-column($from) {
+                    @problems.push: DB::Migration::Declare::Problem::NoSucColumn.new:
+                            :table($table.name), :name($from), :action('add a foreign key to');
+                }
+            }
+            for @!to -> Str $to {
+                unless $target-table.has-column($to) {
+                    @problems.push: DB::Migration::Declare::Problem::NoSucColumn.new:
+                            :table($target-table.name), :name($to), :action('have a foreign key referencing');
+                }
+            }
+            if $table === $target-table && all @!to >>eq<< @!from {
+                @problems.push: DB::Migration::Declare::Problem::IdentityForeignKey.new:
+                        :table($table.name), :columns(@!from);
+            }
+            if $table.has-foreign-key-on(@!from) {
+                @problems.push: DB::Migration::Declare::Problem::DuplicateForeignKey.new:
+                        :table($table.name), :columns(@!from);
+            }
+            elsif !@problems {
+                $table.add-foreign-key(@!from, $!table, @!to);
+            }
+        }
+        else {
+            @problems.push: DB::Migration::Declare::Problem::NoSuchTable.new:
+                    :name($!table), :action('have a foreign key reference')
+        }
+    }
 }
 
 #| A table creation.

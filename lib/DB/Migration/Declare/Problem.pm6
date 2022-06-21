@@ -51,7 +51,7 @@ class DB::Migration::Declare::Problem::NoSucColumn does DB::Migration::Declare::
     has Str $.action is required;
 
     method message(--> Str) {
-        "Cannot $!action non-existent columnb '$!name' of table '$!table'"
+        "Cannot $!action non-existent column '$!name' of table '$!table'"
     }
 }
 
@@ -75,6 +75,32 @@ class DB::Migration::Declare::Problem::DuplicateUniqueKey does DB::Migration::De
 
     method message(--> Str) {
         "Table '$!table' already has a unique key on @!columns.map({ "'$_'" }).join(', ')"
+    }
+}
+
+#| An attempt to give a table a duplicate foreign key.
+class DB::Migration::Declare::Problem::DuplicateForeignKey does DB::Migration::Declare::Problem {
+    #| The table name.
+    has Str $.table is required;
+
+    #| The columns.
+    has @.columns;
+
+    method message(--> Str) {
+        "Table '$!table' already has a foreign key on @!columns.map({ "'$_'" }).join(', ')"
+    }
+}
+
+#| An attempt to give a table a foreign key that references the exact same columns.
+class DB::Migration::Declare::Problem::IdentityForeignKey does DB::Migration::Declare::Problem {
+    #| The table name.
+    has Str $.table is required;
+
+    #| The columns.
+    has @.columns;
+
+    method message(--> Str) {
+        "Foreign key on '$!table' is on columns @!columns.map({ "'$_'" }).join(', ') but references exactly the same columns"
     }
 }
 

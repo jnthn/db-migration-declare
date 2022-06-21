@@ -8,6 +8,18 @@ class DB::Migration::Declare::Schema {
         has Str $.name;
     }
 
+    #| A foreign key.
+    class ForeignKey {
+        #| This table's columns.
+        has Str @.from;
+
+        #| The target table.
+        has Str $.table;
+
+        #| The target table's columns.
+        has Str @.to;
+    }
+
     #| A table in the database.
     class Table {
         #| The name of the table.
@@ -24,6 +36,9 @@ class DB::Migration::Declare::Schema {
 
         #| Lists of columns making up unique keys.
         has List @!unique-key-sets;
+
+        #| Foreign keys.
+        has ForeignKey @!foreign-keys;
 
         #| Get the columns that are part of this table.
         method columns() {
@@ -74,6 +89,17 @@ class DB::Migration::Declare::Schema {
         method has-unique-key(@columns --> Bool) {
             my \sorted = @columns.sort.List;
             ?@!unique-key-sets.map(*.sort.List).first(sorted)
+        }
+
+        #| Add a foreign key.
+        method add-foreign-key(@from, Str $table, @to --> Nil) {
+            @!foreign-keys.push(ForeignKey.new(:@from, :$table, :@to));
+        }
+
+        #| Check if the table has a foreign key on the given columns.
+        method has-foreign-key-on(@from --> Bool) {
+            my \sorted = @from.sort.List;
+            ?@!foreign-keys.map(*.from.sort.List).first(sorted)
         }
     }
 
