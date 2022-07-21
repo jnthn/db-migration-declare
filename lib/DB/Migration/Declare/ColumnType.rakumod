@@ -33,7 +33,7 @@ class DB::Migration::Declare::ColumnType::Boolean does DB::Migration::Declare::C
 #| An integer type column of the specified number of bytes.
 class DB::Migration::Declare::ColumnType::Integer does DB::Migration::Declare::ColumnType {
     has Int $.bytes is required;
-    method describe(--> Str) { 'integer' }
+    method describe(--> Str) { "integer$!bytes" }
 }
 
 #| A date (without time) column.

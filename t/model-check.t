@@ -960,8 +960,72 @@ throws-like
         migration-description => 'Setup',
         problems => {
             .elems == 1 &&
-                    .[0] ~~ DB::Migration::Declare::Problem::Unsupported
+                    .[0] ~~ DB::Migration::Declare::Problem::UnsupportedSQL
         },
         'Model with custom SQL execution is rejected if no variant for the target database';
+
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                        add-column 'extras', type('jsonb'), :!null;
+                    }
+                }
+            }
+        },
+        'Column with named type that is known to be supported is accepted';
+
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                        add-column 'extras', type('JSONB'), :!null;
+                    }
+                }
+            }
+        },
+        'Column type names are not case sensitive';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                        add-column 'image', type('BLOB'), :!null;
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Setup',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::UnsupportedType &&
+                    .[0].type ~~ DB::Migration::Declare::ColumnType::Named &&
+                    .[0].type.name eq 'BLOB'
+        },
+        'Type is rejected if not supported by the backend database';
+
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                        add-column 'image', type('BLOB', :!checked), :!null;
+                    }
+                }
+            }
+        },
+        'Requesting no type name checking accepts an unknown type';
 
 done-testing;

@@ -129,6 +129,10 @@ sub arr($type, *@dimensions --> DB::Migration::Declare::ColumnType::Array) is ex
     DB::Migration::Declare::ColumnType::Array.new(:$element-type, :@dimensions)
 }
 
+sub type(Str $name, Bool :$checked = True --> DB::Migration::Declare::ColumnType::Named) is export {
+    DB::Migration::Declare::ColumnType::Named.new(:$name, :$checked)
+}
+
 
 multi sub sql(Str $sql --> DB::Migration::Declare::SQLLiteral::Agnostic) is export {
     DB::Migration::Declare::SQLLiteral::Agnostic.new(:$sql)

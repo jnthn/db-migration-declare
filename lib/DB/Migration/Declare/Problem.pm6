@@ -1,3 +1,5 @@
+use DB::Migration::Declare::ColumnType;
+
 #| The base of all problems.
 role DB::Migration::Declare::Problem {
     method message(--> Str) { ... }
@@ -104,8 +106,8 @@ class DB::Migration::Declare::Problem::IdentityForeignKey does DB::Migration::De
     }
 }
 
-#| An attempt to do something unsupported by the target database.
-class DB::Migration::Declare::Problem::Unsupported does DB::Migration::Declare::Problem {
+#| An attempt to use a SQL construct unsupported by the target database.
+class DB::Migration::Declare::Problem::UnsupportedSQL does DB::Migration::Declare::Problem {
     #| The database system that doesn't support the requested functionality.
     has Str $.database-name is required;
 
@@ -114,6 +116,19 @@ class DB::Migration::Declare::Problem::Unsupported does DB::Migration::Declare::
 
     method message(--> Str) {
         "$!problem for database $!database-name"
+    }
+}
+
+#| An attempt to use a type unsupported by the target database.
+class DB::Migration::Declare::Problem::UnsupportedType does DB::Migration::Declare::Problem {
+    #| The database system that doesn't support the requested type.
+    has Str $.database-name is required;
+
+    #| The type that is not supported.
+    has DB::Migration::Declare::ColumnType $.type is required;
+
+    method message(--> Str) {
+        "Type '$!type.describe()' is not supported by database $!database-name"
     }
 }
 

@@ -19,6 +19,13 @@ role AlterTableStep {
 
 #| A step that may appear in a table creation or alteration.
 role CreateOrAlterTableStep does CreateTableStep does AlterTableStep {
+    method !check-type(DB::Migration::Declare::Schema $schema, DB::Migration::Declare::ColumnType $type,
+            @problems --> Nil) {
+        without $schema.target-database.translate-type($type) {
+            @problems.push: DB::Migration::Declare::Problem::UnsupportedType.new:
+                    :database-name($schema.target-database.name), :$type
+        }
+    }
 }
 
 #| Adding a column.
@@ -38,6 +45,7 @@ class AddColumn does CreateOrAlterTableStep {
         }
         else {
             $table.declare-column($!name);
+            self!check-type($schema, $!type, @problems);
         }
     }
 }
@@ -220,7 +228,7 @@ class ExecuteSQL is MigrationStep {
         $!sql.get-sql(database => $schema.target-database);
         CATCH {
             default {
-                @problems.push: DB::Migration::Declare::Problem::Unsupported.new:
+                @problems.push: DB::Migration::Declare::Problem::UnsupportedSQL.new:
                         database-name => $schema.target-database.name, problem => .message;
             }
         }
