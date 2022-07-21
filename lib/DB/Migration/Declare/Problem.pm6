@@ -104,6 +104,20 @@ class DB::Migration::Declare::Problem::IdentityForeignKey does DB::Migration::De
     }
 }
 
+#| An attempt to do something unsupported by the target database.
+class DB::Migration::Declare::Problem::Unsupported does DB::Migration::Declare::Problem {
+    #| The database system that doesn't support the requested functionality.
+    has Str $.database-name is required;
+
+    #| The problem.
+    has Str $.problem is required;
+
+    method message(--> Str) {
+        "$!problem for database $!database-name"
+    }
+}
+
+#| Exception thrown where there is a problem with a migration.
 class X::DB::Migration::Declare::MigrationProblem is Exception {
     #| The description of the migration with a problem.
     has Str $.migration-description is required;

@@ -1,12 +1,13 @@
 use Test;
 use DB::Migration::Declare;
+use DB::Migration::Declare::Database::Postgres;
 use DB::Migration::Declare::Model;
 use DB::Migration::Declare::Problem;
 
 sub check(&migrations) {
     my $*DMD-MIGRATION-LIST = DB::Migraion::Declare::Model::MigrationList.new;
     migrations();
-    $*DMD-MIGRATION-LIST.build-schema();
+    $*DMD-MIGRATION-LIST.build-schema(DB::Migration::Declare::Database::Postgres.new);
 }
 
 lives-ok
@@ -923,10 +924,44 @@ lives-ok
                         add-column 'id', integer(), :increments, :primary;
                         add-column 'name', text(), :!null;
                     }
+                    execute sql "INSERT INTO customers (name) VALUES ('Fred')";
+                }
+            }
+        },
+        'Model with custom SQL execution is fine when database agnostic';
+
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
                     execute sql postgres => "INSERT INTO customers (name) VALUES ('Fred')";
                 }
             }
         },
-        'Model with custom SQL execution is fine';
+        'Model with custom SQL execution is fine when database matches';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                    execute sql mysql => "INSERT INTO customers (name) VALUES ('Fred')";
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Setup',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::Unsupported
+        },
+        'Model with custom SQL execution is rejected if no variant for the target database';
 
 done-testing;

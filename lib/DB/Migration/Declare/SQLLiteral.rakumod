@@ -23,7 +23,7 @@ class DB::Migration::Declare::SQLLiteral::Specific does DB::Migration::Declare::
     has Str %.options;
 
     method get-sql(DB::Migration::Declare::Database :$database! --> Str) {
-        %!options{$database.name} // fail "No SQL variant for $database.name()"
+        %!options{$database.name} // fail "No SQL variant provided"
     }
 }
 

@@ -217,6 +217,13 @@ class ExecuteSQL is MigrationStep {
     has DB::Migration::Declare::SQLLiteral $.sql is required;
 
     method apply-to(DB::Migration::Declare::Schema $schema, @problems --> Nil) {
+        $!sql.get-sql(database => $schema.target-database);
+        CATCH {
+            default {
+                @problems.push: DB::Migration::Declare::Problem::Unsupported.new:
+                        database-name => $schema.target-database.name, problem => .message;
+            }
+        }
     }
 }
 
@@ -252,8 +259,8 @@ class MigrationList {
         @!migrations.push($migration);
     }
 
-    method build-schema(--> DB::Migration::Declare::Schema) {
-        my $schema = DB::Migration::Declare::Schema.new;
+    method build-schema(DB::Migration::Declare::Database $target-database --> DB::Migration::Declare::Schema) {
+        my $schema = DB::Migration::Declare::Schema.new(:$target-database);
         for @!migrations {
             .apply-to($schema);
         }

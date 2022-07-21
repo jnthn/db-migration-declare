@@ -1,3 +1,5 @@
+use DB::Migration::Declare::Database;
+
 #| A database schema built up from a number of migrations. Used to validate
 #| migrations and to examine the final state of the database after all of the
 #| migrations are applied.
@@ -102,6 +104,9 @@ class DB::Migration::Declare::Schema {
             ?@!foreign-keys.map(*.from.sort.List).first(sorted)
         }
     }
+
+    #| The database this schema is aimed at.
+    has DB::Migration::Declare::Database $.target-database is required;
 
     #| Lookup of the tables, keyed on name.
     has Table %!tables;
