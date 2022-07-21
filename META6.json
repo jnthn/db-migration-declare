@@ -14,6 +14,7 @@
     "DB::Migration::Declare": "lib/DB/Migration/Declare.rakumod",
     "DB::Migration::Declare::ColumnType": "lib/DB/Migration/Declare/ColumnType.rakumod",
     "DB::Migration::Declare::Database": "lib/DB/Migration/Declare/Database.rakumod",
+    "DB::Migration::Declare::Database::Postgres": "lib/DB/Migration/Declare/Database/Postgres.rakumod",
     "DB::Migration::Declare::Model": "lib/DB/Migration/Declare/Model.rakumod",
     "DB::Migration::Declare::Problem": "lib/DB/Migration/Declare/Problem.pm6",
     "DB::Migration::Declare::SQLLiteral": "lib/DB/Migration/Declare/SQLLiteral.rakumod",
