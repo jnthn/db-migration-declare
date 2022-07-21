@@ -915,4 +915,18 @@ throws-like
         },
         'Cannot have a composite foreign key pointing to the same columns';
 
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                    execute sql postgres => "INSERT INTO customers (name) VALUES ('Fred')";
+                }
+            }
+        },
+        'Model with custom SQL execution is fine';
+
 done-testing;

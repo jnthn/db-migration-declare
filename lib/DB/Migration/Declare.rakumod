@@ -82,6 +82,12 @@ multi sub foriegn-key(:@from!, Str :$table!, :@to = @from, Bool :$restrict = Fal
             :@from, :$table, :@to, :$restrict, :$cascade
 }
 
+multi sub execute(DB::Migration::Declare::SQLLiteral $sql --> Nil) is export {
+    ensure-in-migrate('execute');
+    $*DMD-MODEL.add-step(DB::Migraion::Declare::Model::ExecuteSQL.new(:$sql));
+}
+
+
 sub char(Int $length --> DB::Migration::Declare::ColumnType::Char) is export {
     DB::Migration::Declare::ColumnType::Char.new(:$length, :!varying)
 }

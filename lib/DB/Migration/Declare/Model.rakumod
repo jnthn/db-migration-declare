@@ -2,6 +2,7 @@ use v6.d;
 use DB::Migration::Declare::ColumnType;
 use DB::Migration::Declare::Problem;
 use DB::Migration::Declare::Schema;
+use DB::Migration::Declare::SQLLiteral;
 unit module DB::Migraion::Declare::Model;
 
 #| A step in a migration.
@@ -208,6 +209,14 @@ class DropTable is MigrationStep {
             @problems.push: DB::Migration::Declare::Problem::NoSuchTable.new:
                     :action('drop'), :$!name;
         }
+    }
+}
+
+#| Execute the specified SQL query. Used as an escape hatch.
+class ExecuteSQL is MigrationStep {
+    has DB::Migration::Declare::SQLLiteral $.sql is required;
+
+    method apply-to(DB::Migration::Declare::Schema $schema, @problems --> Nil) {
     }
 }
 
