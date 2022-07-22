@@ -82,9 +82,9 @@ multi sub foriegn-key(:@from!, Str :$table!, :@to = @from, Bool :$restrict = Fal
             :@from, :$table, :@to, :$restrict, :$cascade
 }
 
-multi sub execute(DB::Migration::Declare::SQLLiteral $sql --> Nil) is export {
+multi sub execute(DB::Migration::Declare::SQLLiteral :$up!, DB::Migration::Declare::SQLLiteral :$down! --> Nil) is export {
     ensure-in-migrate('execute');
-    $*DMD-MODEL.add-step(DB::Migraion::Declare::Model::ExecuteSQL.new(:$sql));
+    $*DMD-MODEL.add-step(DB::Migraion::Declare::Model::ExecuteSQL.new(:$up, :$down));
 }
 
 

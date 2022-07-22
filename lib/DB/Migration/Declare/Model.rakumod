@@ -222,10 +222,11 @@ class DropTable is MigrationStep {
 
 #| Execute the specified SQL query. Used as an escape hatch.
 class ExecuteSQL is MigrationStep {
-    has DB::Migration::Declare::SQLLiteral $.sql is required;
+    has DB::Migration::Declare::SQLLiteral $.up is required;
+    has DB::Migration::Declare::SQLLiteral $.down is required;
 
     method apply-to(DB::Migration::Declare::Schema $schema, @problems --> Nil) {
-        $!sql.get-sql(database => $schema.target-database);
+        .get-sql(database => $schema.target-database) for $!up, $!down;
         CATCH {
             default {
                 @problems.push: DB::Migration::Declare::Problem::UnsupportedSQL.new:

@@ -924,7 +924,9 @@ lives-ok
                         add-column 'id', integer(), :increments, :primary;
                         add-column 'name', text(), :!null;
                     }
-                    execute sql "INSERT INTO customers (name) VALUES ('Fred')";
+                    execute
+                            up => sql("INSERT INTO customers (name) VALUES ('Fred')"),
+                            down => sql("DELETE FROM customers WHERE id = 1");
                 }
             }
         },
@@ -938,7 +940,9 @@ lives-ok
                         add-column 'id', integer(), :increments, :primary;
                         add-column 'name', text(), :!null;
                     }
-                    execute sql postgres => "INSERT INTO customers (name) VALUES ('Fred')";
+                    execute
+                            up => sql(postgres => "INSERT INTO customers (name) VALUES ('Fred')"),
+                            down => sql(postgres => "DELETE from customers WHERE id = 1");
                 }
             }
         },
@@ -952,7 +956,9 @@ throws-like
                         add-column 'id', integer(), :increments, :primary;
                         add-column 'name', text(), :!null;
                     }
-                    execute sql mysql => "INSERT INTO customers (name) VALUES ('Fred')";
+                    execute
+                            up => sql(mysql => "INSERT INTO customers (name) VALUES ('Fred')"),
+                            down => sql(mysql => 'DELETE FROM customers where id = 1');
                 }
             }
         },
