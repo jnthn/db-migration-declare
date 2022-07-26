@@ -40,7 +40,7 @@ sub drop-table(Str $name --> Nil) is export {
     $*DMD-MODEL.add-step(DB::Migraion::Declare::Model::DropTable.new(:$name));
 }
 
-sub add-column(Str $name, $type, Bool :$null = True, Bool :$increments, Any :$default,
+sub add-column(Str $name, $type, Bool :$increments, Bool :$null = !$increments, Any :$default,
         Bool :$primary, Bool :$unique --> Nil) is export {
     ensure-in-table('add-column');
     $*DMD-MODEL-TABLE.add-step: DB::Migraion::Declare::Model::AddColumn.new:

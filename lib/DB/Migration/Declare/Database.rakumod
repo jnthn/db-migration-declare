@@ -17,4 +17,11 @@ role DB::Migration::Declare::Database {
     #| The expression that produces the current date/time/timestamp in this database for
     #| the specified column type.
     method now-expression(DB::Migration::Declare::ColumnType $type --> Str) { ... }
+
+    #| Translate a migration step to SQL in the up direction. This should be implemented to handle
+    #| the various concrete types of migration steps.
+    method translate-up(DB::Migration::Declare::Model::MigrationStep $step --> Str) { ... }
+
+    #| Apply a migration to the database using the provided connection object.
+    method apply-migration-sql(Any $connection, Str $sql --> Nil) { ... }
 }

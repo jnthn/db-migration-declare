@@ -1,5 +1,6 @@
 use v6.d;
 use DB::Migration::Declare::Database;
+use DB::Migration::Declare::Model;
 
 my constant TYPES = set <
     bigint	int8
@@ -150,4 +151,55 @@ class DB::Migration::Declare::Database::Postgres does DB::Migration::Declare::Da
         }
     }
 
+    proto method translate-up(DB::Migration::Declare::Model::MigrationStep $step --> Str) { * }
+
+    multi method translate-up(DB::Migraion::Declare::Model::CreateTable $create-table --> Str) {
+        my @steps = $create-table.steps.map: {
+            when DB::Migraion::Declare::Model::AddColumn {
+                qq/"{.name}" / ~
+                        (.increments ?? self.increments-type(.type) !! self.translate-type(.type)) ~
+                        self.default(.default, .type) ~
+                        self.nullness(.null)
+            }
+            when DB::Migraion::Declare::Model::PrimaryKey {
+                'PRIMARY KEY (' ~ .column-names.map({ qq{"$_"} }).join(", ") ~ ')'
+            }
+            when DB::Migraion::Declare::Model::UniqueKey {
+                'UNIQUE (' ~ .column-names.map({ qq{"$_"} }).join(", ") ~ ')'
+            }
+            default {
+                die "Sorry, { .^name } is not yet implemented for Postgres up migration generation";
+            }
+        }
+        return qq{CREATE TABLE "$create-table.name()" (\n} ~ @steps.join(",\n") ~ "\n);\n";
+    }
+
+    multi method translate-up(DB::Migraion::Declare::Model::DropTable $drop-table --> Str) {
+        return qq{DROP TABLE "$drop-table.name()";\n};
+    }
+
+    multi method translate-up(DB::Migraion::Declare::Model::ExecuteSQL $execute-sql --> Str) {
+        my Str $sql = $execute-sql.up.get-sql(:database(self)).trim-trailing;
+        $sql.ends-with(';') ?? "$sql\n" !! "$sql;\n"
+    }
+
+    multi method default(DB::Migration::Declare::SQLLiteral:D $sql, DB::Migration::Declare::ColumnType $type --> Str) {
+        ' DEFAULT ' ~ $sql.get-sql(:database(self), :expected-type($type))
+    }
+
+    multi method default(Numeric:D $value, DB::Migration::Declare::ColumnType --> Str) {
+        ' DEFAULT ' ~ $value
+    }
+
+    multi method default(Any:U, DB::Migration::Declare::ColumnType --> Str) {
+        ''
+    }
+
+    method nullness(Bool $null --> Str) {
+        $null ?? ' NULL' !! ' NOT NULL'
+    }
+
+    method apply-migration-sql(Any $connection, Str $sql --> Nil) {
+        $connection.execute($sql);
+    }
 }

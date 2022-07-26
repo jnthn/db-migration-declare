@@ -165,7 +165,7 @@ class ForeignKey does CreateOrAlterTableStep {
 #| A table creation.
 class CreateTable is DB::Migration::Declare::Model::MigrationStep {
     has Str $.name is required;
-    has CreateTableStep @!steps;
+    has CreateTableStep @.steps;
 
     method add-step(CreateTableStep $step --> Nil) {
         @!steps.push($step);
@@ -187,7 +187,7 @@ class CreateTable is DB::Migration::Declare::Model::MigrationStep {
 #| A table alteration.
 class AlterTable is DB::Migration::Declare::Model::MigrationStep {
     has Str $.name is required;
-    has AlterTableStep @!steps;
+    has AlterTableStep @.steps;
 
     method add-step(AlterTableStep $step --> Nil) {
         @!steps.push($step);
@@ -244,15 +244,36 @@ class Migration {
     has Str $.description is required;
     has DB::Migration::Declare::Model::MigrationStep @!steps;
 
+    #| Add a step to the migration.
     method add-step(DB::Migration::Declare::Model::MigrationStep $step --> Nil) {
         @!steps.push($step);
     }
 
+    #| Apply the migration steps to the specified schema, but don't do any SQL generation.
     method apply-to(DB::Migration::Declare::Schema $schema --> Nil) {
         my @problems;
         for @!steps {
             .apply-to($schema, @problems);
         }
+        self!report-problems(@problems);
+    }
+
+    #| Generate the SQL to raise the database to the specified migration, also applying
+    #| the changes to the passed in schema object. The schema should be in the state of
+    #| having had all previous migrations have been applied, in order that any code
+    #| generation that is interested in the current state can do that.
+    method generate-up-sql(DB::Migration::Declare::Schema $schema --> Str) {
+        my @sql-parts;
+        my @problems;
+        for @!steps {
+            @sql-parts.push: $schema.target-database.translate-up($_, :$schema);
+            .apply-to($schema, @problems);
+        }
+        self!report-problems(@problems);
+        @sql-parts.join()
+    }
+
+    method !report-problems(@problems --> Nil) {
         if @problems {
             die X::DB::Migration::Declare::MigrationProblem.new:
                     :@problems, :migration-description($!description),
@@ -263,7 +284,7 @@ class Migration {
 
 #| A list of migrations to be applied in order.
 class MigrationList {
-    has Migration @!migrations;
+    has Migration @.migrations;
 
     method add-migration(Migration $migration --> Nil) {
         @!migrations.push($migration);
