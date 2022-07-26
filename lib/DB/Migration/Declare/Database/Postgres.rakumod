@@ -3,7 +3,6 @@ use DB::Migration::Declare::Database;
 
 my constant TYPES = set <
     bigint	int8
-    bigserial	serial8
     bit
     boolean	bool
     box
@@ -31,8 +30,6 @@ my constant TYPES = set <
     polygon
     real	float4
     smallint	int2
-    smallserial	serial2
-    serial	serial4
     text
     time
     time
@@ -110,6 +107,33 @@ class DB::Migration::Declare::Database::Postgres does DB::Migration::Declare::Da
                 Str
             }
         }
+    }
+
+    method increments-type(DB::Migration::Declare::ColumnType $type --> Str) {
+        given $type {
+            when DB::Migration::Declare::ColumnType::Integer {
+                given .bytes {
+                    when 2 { 'smallserial' }
+                    when 4 { 'serial' }
+                    when 8 { 'bigserial' }
+                    default { Str }
+                }
+            }
+            when DB::Migration::Declare::ColumnType::Named {
+                given .name {
+                    when 'smallint' | 'int2' { 'smallserial' }
+                    when 'integer' | 'int' | 'int4' { 'serial' }
+                    when 'bigint' | 'int8' { 'bigserial' }
+                }
+            }
+            default {
+                Str
+            }
+        }
+    }
+
+    method type-supports-increments(DB::Migration::Declare::ColumnType $type --> Bool) {
+        so self.increments-type($type)
     }
 
     method now-expression(DB::Migration::Declare::ColumnType $type --> Str) {

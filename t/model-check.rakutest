@@ -1034,4 +1034,28 @@ lives-ok
         },
         'Requesting no type name checking accepts an unknown type';
 
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', varchar(255), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                        add-column 'image', type('BLOB', :!checked), :!null;
+                    }
+                }
+            },
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Setup',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NotAnIncrementableType &&
+                    .[0].type ~~ DB::Migration::Declare::ColumnType::Char &&
+                    .[0].table eq 'customers' &&
+                    .[0].name eq 'id'
+        },
+        'Cannot use type that does not support auto-increment with :increments';
+
+
 done-testing;

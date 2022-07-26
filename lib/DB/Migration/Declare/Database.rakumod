@@ -10,6 +10,9 @@ role DB::Migration::Declare::Database {
     #| If the type is unsupported, returns a type object.
     method translate-type(DB::Migration::Declare::ColumnType $type --> Str) { ... }
 
+    #| Tests if a given column type supports auto-increment.
+    method type-supports-increments(DB::Migration::Declare::ColumnType $type --> Bool) { ... }
+
     #| The expression that produces the current date/time/timestamp in this database for
     #| the specified column type.
     method now-expression(DB::Migration::Declare::ColumnType $type --> Str) { ... }

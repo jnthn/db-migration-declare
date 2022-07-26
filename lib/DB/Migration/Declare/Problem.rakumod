@@ -132,6 +132,22 @@ class DB::Migration::Declare::Problem::UnsupportedType does DB::Migration::Decla
     }
 }
 
+#| Use of a type with :increments that does not support being auto-increment.
+class DB::Migration::Declare::Problem::NotAnIncrementableType does DB::Migration::Declare::Problem {
+    #| The table name.
+    has Str $.table is required;
+
+    #| The column name.
+    has Str $.name is required;
+
+    #| The type that is not supported.
+    has DB::Migration::Declare::ColumnType $.type is required;
+
+    method message(--> Str) {
+        "Column '$!name' in table '$!table' is declared to auto-increment, but that is not possible with type '$!type.describe()'"
+    }
+}
+
 #| Exception thrown where there is a problem with a migration.
 class X::DB::Migration::Declare::MigrationProblem is Exception {
     #| The description of the migration with a problem.

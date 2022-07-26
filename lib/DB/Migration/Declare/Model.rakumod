@@ -46,6 +46,10 @@ class AddColumn does CreateOrAlterTableStep {
         else {
             $table.declare-column($!name);
             self!check-type($schema, $!type, @problems);
+            if $!increments && !$schema.target-database.type-supports-increments($!type) {
+                @problems.push: DB::Migration::Declare::Problem::NotAnIncrementableType.new:
+                        :table($table.name), :$!name, :$!type;
+            }
         }
     }
 }
