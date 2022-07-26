@@ -1,0 +1,21 @@
+use v6.d;
+use Test;
+use Test::ContainerizedService;
+
+# Ensure we have DB::Pg available.
+try require ::('DB::Pg');
+my $pg = ::('DB::Pg');
+if $pg ~~ Failure {
+    skip 'No DB::Pg available for testing';
+    exit;
+}
+
+test-service 'postgres', -> (:$conninfo, *%) {
+    my $conn = $pg.new(:$conninfo);
+    diag 'Connected to test Postgres instance';
+
+    dies-ok { $conn.query('insert into skyscrapers (name, height) values ($1,$2)', 'Burj Khalifa', ); },
+        'Query fails before running migration to create table';
+}
+
+END done-testing;

@@ -9,7 +9,9 @@
   "auth": "zef:jnthn",
   "depends": [],
   "build-depends": [],
-  "test-depends": [],
+  "test-depends": [
+    "Test::ContainerizedService"
+  ],
   "provides": {
     "DB::Migration::Declare": "lib/DB/Migration/Declare.rakumod",
     "DB::Migration::Declare::ColumnType": "lib/DB/Migration/Declare/ColumnType.rakumod",
