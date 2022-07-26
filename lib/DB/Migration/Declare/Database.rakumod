@@ -1,7 +1,8 @@
 use v6.d;
 use DB::Migration::Declare::ColumnType;
+use DB::Migration::Declare::Model::MigrationStep;
 
-#| A role done by all supported databsae backends.
+#| A role done by all supported database backends.
 role DB::Migration::Declare::Database {
     #| The name of the database backend.
     method name(--> Str) { ... }

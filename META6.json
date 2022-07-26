@@ -16,9 +16,8 @@
     "DB::Migration::Declare::Database": "lib/DB/Migration/Declare/Database.rakumod",
     "DB::Migration::Declare::Database::Postgres": "lib/DB/Migration/Declare/Database/Postgres.rakumod",
     "DB::Migration::Declare::Model": "lib/DB/Migration/Declare/Model.rakumod",
-    "DB::Migration::Declare::Problem": "lib/DB/Migration/Declare/Problem.rakumod",
-    "DB::Migration::Declare::SQLLiteral": "lib/DB/Migration/Declare/SQLLiteral.rakumod",
-    "DB::Migration::Declare::Schema": "lib/DB/Migration/Declare/Schema.rakumod"
+    "DB::Migration::Declare::Model::MigrationStep": "lib/DB/Migration/Declare/Model/MigrationStep.rakumod",
+    "DB::Migration::Declare::SQLLiteral": "lib/DB/Migration/Declare/SQLLiteral.rakumod"
   },
   "resources": [],
   "license": "Write me!",

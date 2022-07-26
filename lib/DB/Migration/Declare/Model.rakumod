@@ -1,13 +1,10 @@
 use v6.d;
 use DB::Migration::Declare::ColumnType;
+use DB::Migration::Declare::Model::MigrationStep;
 use DB::Migration::Declare::Problem;
 use DB::Migration::Declare::Schema;
 use DB::Migration::Declare::SQLLiteral;
 unit module DB::Migraion::Declare::Model;
-
-#| A step in a migration.
-role MigrationStep {
-}
 
 #| A step in a table creation.
 role CreateTableStep {
@@ -166,7 +163,7 @@ class ForeignKey does CreateOrAlterTableStep {
 }
 
 #| A table creation.
-class CreateTable is MigrationStep {
+class CreateTable is DB::Migration::Declare::Model::MigrationStep {
     has Str $.name is required;
     has CreateTableStep @!steps;
 
@@ -188,7 +185,7 @@ class CreateTable is MigrationStep {
 }
 
 #| A table alteration.
-class AlterTable is MigrationStep {
+class AlterTable is DB::Migration::Declare::Model::MigrationStep {
     has Str $.name is required;
     has AlterTableStep @!steps;
 
@@ -210,7 +207,7 @@ class AlterTable is MigrationStep {
 }
 
 #| A table drop.
-class DropTable is MigrationStep {
+class DropTable is DB::Migration::Declare::Model::MigrationStep {
     has Str $.name is required;
 
     method apply-to(DB::Migration::Declare::Schema $schema, @problems --> Nil) {
@@ -225,7 +222,7 @@ class DropTable is MigrationStep {
 }
 
 #| Execute the specified SQL query. Used as an escape hatch.
-class ExecuteSQL is MigrationStep {
+class ExecuteSQL is DB::Migration::Declare::Model::MigrationStep {
     has DB::Migration::Declare::SQLLiteral $.up is required;
     has DB::Migration::Declare::SQLLiteral $.down is required;
 
@@ -245,9 +242,9 @@ class Migration {
     has Str $.file is required;
     has Int $.line is required;
     has Str $.description is required;
-    has MigrationStep @!steps;
+    has DB::Migration::Declare::Model::MigrationStep @!steps;
 
-    method add-step(MigrationStep $step --> Nil) {
+    method add-step(DB::Migration::Declare::Model::MigrationStep $step --> Nil) {
         @!steps.push($step);
     }
 
