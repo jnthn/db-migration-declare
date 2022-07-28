@@ -1,5 +1,7 @@
 use v6.d;
 use DB::Migration::Declare::Database;
+use DB::Migration::Declare::MigrationDirection;
+use DB::Migration::Declare::MigrationHistory;
 use DB::Migration::Declare::Model;
 
 my constant TYPES = set <
@@ -197,6 +199,55 @@ class DB::Migration::Declare::Database::Postgres does DB::Migration::Declare::Da
 
     method nullness(Bool $null --> Str) {
         $null ?? ' NULL' !! ' NOT NULL'
+    }
+
+    method ensure-migration-state-storage(Any $connection --> Nil) {
+        # Postgres 9.1+ support the IF NOT EXISTS syntax; that was released in 2011, and such
+        # versions are already EOL two times over, so depend on it.
+        $connection.execute: q:to/SETUP/
+            CREATE TABLE IF NOT EXISTS raku_dmd_migration_state (
+                id serial NOT NULL,
+                -- The schema ID, used to distinguish different sets of migrations.
+                schema varchar(255) NOT NULL,
+                -- A version number of the database after this application, used for an
+                -- ordering of changes.
+                version integer NOT NULL,
+                -- The hash of the migration applied.
+                migration varchar(40) NOT NULL,
+                -- Was it a migration up or down?
+                up boolean NOT NULL,
+                -- The migration's description; informational/degugging use only.
+                description text NOT NULL,
+                -- When the migration was applied.
+                applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE (schema, version)
+            );
+            SETUP
+    }
+
+    method load-migration-history(Any $connection, Str $schema-id --> DB::Migration::Declare::MigrationHistory) {
+        my @raw-entries = $connection.query(q:to/SQL/, $schema-id).hashes;
+            SELECT version, migration, up, description, applied_at
+            FROM raku_dmd_migration_state
+            WHERE schema = $1
+            SQL
+        DB::Migration::Declare::MigrationHistory.new: entries => @raw-entries.map: -> %entry {
+            DB::Migration::Declare::MigrationHistory::Entry.new:
+                    version => %entry<version>,
+                    hash => %entry<migration>,
+                    direction => %entry<up> ?? MigrationDirection::Up !! MigrationDirection::Down,
+                    description => %entry<description>,
+                    applied-at => %entry<applied_at>
+        }
+    }
+
+    method add-migration-history-entry(Any $connection, Str $schema-id, Int $version, Str $hash,
+                                       MigrationDirection $direction, Str $description --> Nil) {
+        $connection.query: q:to/SQL/, $schema-id, $version, $hash, $direction == MigrationDirection::Up, $description;
+            INSERT INTO raku_dmd_migration_state (schema, version, migration, up, description)
+            VALUES ($1, $2, $3, $4, $5);
+            SQL
     }
 
     method apply-migration-sql(Any $connection, Str $sql --> Nil) {

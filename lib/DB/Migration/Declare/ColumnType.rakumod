@@ -1,8 +1,14 @@
 use v6.d;
+use Digest::SHA1::Native;
 
 #| The base of all column types.
 role DB::Migration::Declare::ColumnType {
     method describe(--> Str) { ... }
+    method hashed(--> Str) {
+        # For now just hash the description; separate interface for if we want to later
+        # change the description, since we'll need to preserve the hashing.
+        sha1-hex self.describe
+    }
 }
 
 #| A simple named type, which we may request is not checked against those known to us as

@@ -7,7 +7,9 @@
     "Jonathan Worthington <jnthn@jnthn.net>"
   ],
   "auth": "zef:jnthn",
-  "depends": [],
+  "depends": [
+    "Digest::SHA1::Native"
+  ],
   "build-depends": [],
   "test-depends": [
     "Test::ContainerizedService"
@@ -18,6 +20,8 @@
     "DB::Migration::Declare::ColumnType": "lib/DB/Migration/Declare/ColumnType.rakumod",
     "DB::Migration::Declare::Database": "lib/DB/Migration/Declare/Database.rakumod",
     "DB::Migration::Declare::Database::Postgres": "lib/DB/Migration/Declare/Database/Postgres.rakumod",
+    "DB::Migration::Declare::MigrationDirection": "lib/DB/Migration/Declare/MigrationDirection.rakumod",
+    "DB::Migration::Declare::MigrationHistory": "lib/DB/Migration/Declare/MigrationHistory.rakumod",
     "DB::Migration::Declare::Model": "lib/DB/Migration/Declare/Model.rakumod",
     "DB::Migration::Declare::Model::MigrationStep": "lib/DB/Migration/Declare/Model/MigrationStep.rakumod",
     "DB::Migration::Declare::SQLLiteral": "lib/DB/Migration/Declare/SQLLiteral.rakumod"

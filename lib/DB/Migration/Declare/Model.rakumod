@@ -4,14 +4,17 @@ use DB::Migration::Declare::Model::MigrationStep;
 use DB::Migration::Declare::Problem;
 use DB::Migration::Declare::Schema;
 use DB::Migration::Declare::SQLLiteral;
+use Digest::SHA1::Native;
 unit module DB::Migraion::Declare::Model;
 
 #| A step in a table creation.
 role CreateTableStep {
+    method hashable-str(--> Str) { ... }
 }
 
 #| A step in a table alteration.
 role AlterTableStep {
+    method hashable-str(--> Str) { ... }
 }
 
 #| A step that may appear in a table creation or alteration.
@@ -49,6 +52,11 @@ class AddColumn does CreateOrAlterTableStep {
             }
         }
     }
+
+    method hashable-str(--> Str) {
+        join "\0", "AddColumn", $!name, $!type.hashed, ($!null ?? 'null' !! 'not null'),
+                ($!increments ?? 'increments' !! '')
+    }
 }
 
 #| Dropping a column.
@@ -65,6 +73,10 @@ class DropColumn does AlterTableStep {
             @problems.push: DB::Migration::Declare::Problem::NoSucColumn.new:
                     :table($table.name), :$!name, :action('drop');
         }
+    }
+
+    method hashable-str(--> Str) {
+        join "\0", "DropColumn", $!name
     }
 }
 
@@ -87,6 +99,10 @@ class PrimaryKey does CreateOrAlterTableStep {
         }
         $table.set-primary-key(@!column-names);
     }
+
+    method hashable-str(--> Str) {
+        join "\0", "PrimaryKey", @!column-names.sort
+    }
 }
 
 #| Add a unique key.
@@ -107,6 +123,10 @@ class UniqueKey does CreateOrAlterTableStep {
             }
         }
         $table.add-unique-key(@!column-names);
+    }
+
+    method hashable-str(--> Str) {
+        join "\0", "UniqueKey", @!column-names.sort
     }
 }
 
@@ -160,10 +180,15 @@ class ForeignKey does CreateOrAlterTableStep {
                     :name($!table), :action('have a foreign key reference')
         }
     }
+
+    method hashable-str(--> Str) {
+        join "\0", "ForeignKey", $!table, @!from.map({ "F:$_" }), @!to.map({ "T:$_" }),
+                ($!restrict ?? 'R' !! ''), ($!cascade ?? 'C' !! '')
+    }
 }
 
 #| A table creation.
-class CreateTable is DB::Migration::Declare::Model::MigrationStep {
+class CreateTable does DB::Migration::Declare::Model::MigrationStep {
     has Str $.name is required;
     has CreateTableStep @.steps;
 
@@ -182,10 +207,14 @@ class CreateTable is DB::Migration::Declare::Model::MigrationStep {
             .apply-to($schema, $table, @problems);
         }
     }
+
+    method hashed(--> Str) {
+        sha1-hex(join "\0", "CreateTable", $!name, @!steps.map(*.hashable-str))
+    }
 }
 
 #| A table alteration.
-class AlterTable is DB::Migration::Declare::Model::MigrationStep {
+class AlterTable does DB::Migration::Declare::Model::MigrationStep {
     has Str $.name is required;
     has AlterTableStep @.steps;
 
@@ -204,10 +233,14 @@ class AlterTable is DB::Migration::Declare::Model::MigrationStep {
                     :action('alter'), :$!name;
         }
     }
+
+    method hashed(--> Str) {
+        sha1-hex(join "\0", "AlterTable", $!name, @!steps.map(*.hashable-str))
+    }
 }
 
 #| A table drop.
-class DropTable is DB::Migration::Declare::Model::MigrationStep {
+class DropTable does DB::Migration::Declare::Model::MigrationStep {
     has Str $.name is required;
 
     method apply-to(DB::Migration::Declare::Schema $schema, @problems --> Nil) {
@@ -219,10 +252,14 @@ class DropTable is DB::Migration::Declare::Model::MigrationStep {
                     :action('drop'), :$!name;
         }
     }
+
+    method hashed(--> Str) {
+        sha1-hex(join "\0", "DropTable", $!name)
+    }
 }
 
 #| Execute the specified SQL query. Used as an escape hatch.
-class ExecuteSQL is DB::Migration::Declare::Model::MigrationStep {
+class ExecuteSQL does DB::Migration::Declare::Model::MigrationStep {
     has DB::Migration::Declare::SQLLiteral $.up is required;
     has DB::Migration::Declare::SQLLiteral $.down is required;
 
@@ -234,6 +271,10 @@ class ExecuteSQL is DB::Migration::Declare::Model::MigrationStep {
                         database-name => $schema.target-database.name, problem => .message;
             }
         }
+    }
+
+    method hashed(--> Str) {
+        sha1-hex(join "\0", "ExecuteSQL", $!up.hashed, $!down.hashed)
     }
 }
 
@@ -256,6 +297,11 @@ class Migration {
             .apply-to($schema, @problems);
         }
         self!report-problems(@problems);
+    }
+
+    #| Get a unique hash for the migration.
+    method hashed(--> Str) {
+        sha1-hex @!steps.map(*.hashed).join("\n")
     }
 
     #| Generate the SQL to raise the database to the specified migration, also applying

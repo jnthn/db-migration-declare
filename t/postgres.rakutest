@@ -1,5 +1,6 @@
 use v6.d;
 use DB::Migration::Declare::Applicator;
+use DB::Migration::Declare::MigrationDirection;
 use DB::Migration::Declare::Database::Postgres;
 use Test;
 use Test::ContainerizedService;
@@ -16,35 +17,49 @@ test-service 'postgres', -> (:$conninfo, *%) {
     my $conn = $pg.new(:$conninfo);
     diag 'Connected to test Postgres instance';
 
-    dies-ok { $conn.query('insert into skyscrapers (name, height) values ($1,$2)', 'Burj Khalifa', 828); },
-        'Insert query fails before running migration to create table';
+    subtest 'Initial application of a single migration' => {
+        dies-ok { $conn.query('insert into skyscrapers (name, height) values ($1,$2)', 'Burj Khalifa', 828); },
+                'Insert query fails before running migration to create table';
 
-    my $applicator = DB::Migration::Declare::Applicator.new:
-            source => $*PROGRAM.parent.add('test-data/single-create-table-migration.raku'),
-            database => DB::Migration::Declare::Database::Postgres.new,
-            connection => $conn;
-    lives-ok { $applicator.check }, 'Loaded schema checks OK';
-    my DB::Migration::Declare::Applicator::MigrationOutcome $status;
-    lives-ok { $status = $applicator.to-latest }, 'Successfully migrated to the latest version';
-    is $status.direction, DB::Migration::Declare::Applicator::MigrationDirection::Up, 'Correct direction';
-    is $status.migrations.elems, 1, 'Applied one migration';
+        my $applicator = DB::Migration::Declare::Applicator.new:
+                schema-id => 'test',
+                source => $*PROGRAM.parent.add('test-data/single-create-table-migration.raku'),
+                database => DB::Migration::Declare::Database::Postgres.new,
+                connection => $conn;
+        lives-ok { $applicator.check }, 'Loaded schema checks OK';
+        my DB::Migration::Declare::Applicator::MigrationOutcome $status;
+        lives-ok { $status = $applicator.to-latest }, 'Successfully migrated to the latest version';
+        is $status.direction, DB::Migration::Declare::MigrationDirection::Up, 'Correct direction';
+        is $status.migrations.elems, 1, 'Applied one migration';
 
-    lives-ok { $conn.query('insert into skyscrapers (name, height) values ($1,$2)', 'Burj Khalifa', 828); },
-            'Insert query succeeds after running migration that creates table';
-    lives-ok { $conn.query('insert into skyscrapers (name, height) values ($1,$2)', 'Shanghai Tower', 632); },
-            'Insert query succeeds after running migration that creates table';
-    given $conn.query('select id, name, height from skyscrapers order by id').hashes -> @results {
-        is @results.elems, 2, 'Expected number of results';
-        is @results[0]<id>, 1, 'Correct auto-increment primary key (1)';
-        is @results[1]<id>, 2, 'Correct auto-increment primary key (2)';
-        is-deeply @results.map(*<height>).list, (828, 632), 'Correct inserted data';
+        lives-ok { $conn.query('insert into skyscrapers (name, height) values ($1,$2)', 'Burj Khalifa', 828); },
+                'Insert query succeeds after running migration that creates table';
+        lives-ok { $conn.query('insert into skyscrapers (name, height) values ($1,$2)', 'Shanghai Tower', 632); },
+                'Insert query succeeds after running migration that creates table';
+        given $conn.query('select id, name, height from skyscrapers order by id').hashes -> @results {
+            is @results.elems, 2, 'Expected number of results';
+            is @results[0]<id>, 1, 'Correct auto-increment primary key (1)';
+            is @results[1]<id>, 2, 'Correct auto-increment primary key (2)';
+            is-deeply @results.map(*<height>).list, (828, 632), 'Correct inserted data';
+        }
+        dies-ok { $conn.query('insert into skyscrapers (name, height) values ($1,$2)', 'Burj Khalifa', 800); },
+                'Unique key, as requested in schema, is enforced';
+        dies-ok { $conn.query('insert into skyscrapers (name) values ($1)', 'Taipei 101'); },
+                'Non-null constraint is enforced (1)';
+        dies-ok { $conn.query('insert into skyscrapers (height) values ($1)', 508); },
+                'Non-null constraint is enforced (2)';
     }
-    dies-ok { $conn.query('insert into skyscrapers (name, height) values ($1,$2)', 'Burj Khalifa', 800); },
-            'Unique key, as requested in schema, is enforced';
-    dies-ok { $conn.query('insert into skyscrapers (name) values ($1)', 'Taipei 101'); },
-            'Non-null constraint is enforced (1)';
-    dies-ok { $conn.query('insert into skyscrapers (height) values ($1)', 508); },
-            'Non-null constraint is enforced (2)';
+
+    subtest 'No changes when migration already applied' => {
+        my $applicator = DB::Migration::Declare::Applicator.new:
+                schema-id => 'test',
+                source => $*PROGRAM.parent.add('test-data/single-create-table-migration.raku'),
+                database => DB::Migration::Declare::Database::Postgres.new,
+                connection => $conn;
+        my DB::Migration::Declare::Applicator::MigrationOutcome $status;
+        lives-ok { $status = $applicator.to-latest }, 'No error when running migration again';
+        is $status.migrations.elems, 0, 'No migrations were applied';
+    }
 }
 
 END done-testing;
