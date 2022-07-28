@@ -97,6 +97,25 @@ test-service 'postgres', -> (:$conninfo, *%) {
             is @results[0]<name>, 'United Arab Emirates', 'Correct value (2)';
         }
     }
+
+    subtest 'Alter table migration works' => {
+        dies-ok { $conn.query('update skyscrapers set country = 1 where id = 1;'); },
+                'Update query fails before running migration that adds country column';
+
+        my $applicator = DB::Migration::Declare::Applicator.new:
+                schema-id => 'test',
+                source => $*PROGRAM.parent.add('test-data/table-alteration.raku'),
+                database => DB::Migration::Declare::Database::Postgres.new,
+                connection => $conn;
+        my DB::Migration::Declare::Applicator::MigrationOutcome $status;
+        lives-ok { $status = $applicator.to-latest }, 'No error when running additional migration';
+        is $status.migrations.elems, 1, 'One further migration was applied';
+
+        lives-ok { $conn.query('update skyscrapers set country = 1 where id = 1;'); },
+                'Update query succeeds after running migration that adds country column';
+        dies-ok { $conn.query('update skyscrapers set country = 42 where id = 1;'); },
+                'Foreign key specification is enforced';
+    }
 }
 
 END done-testing;

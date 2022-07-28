@@ -158,22 +158,43 @@ class DB::Migration::Declare::Database::Postgres does DB::Migration::Declare::Da
     multi method translate-up(DB::Migraion::Declare::Model::CreateTable $create-table --> Str) {
         my @steps = $create-table.steps.map: {
             when DB::Migraion::Declare::Model::AddColumn {
-                qq/"{.name}" / ~
-                        (.increments ?? self.increments-type(.type) !! self.translate-type(.type)) ~
-                        self.default(.default, .type) ~
-                        self.nullness(.null)
+                self!column($_)
             }
             when DB::Migraion::Declare::Model::PrimaryKey {
-                'PRIMARY KEY (' ~ .column-names.map({ qq{"$_"} }).join(", ") ~ ')'
+                self!primary-key($_)
             }
             when DB::Migraion::Declare::Model::UniqueKey {
-                'UNIQUE (' ~ .column-names.map({ qq{"$_"} }).join(", ") ~ ')'
+                self!unique-key($_)
+            }
+            when DB::Migraion::Declare::Model::ForeignKey {
+                self!foreign-key($_)
             }
             default {
                 die "Sorry, { .^name } is not yet implemented for Postgres up migration generation";
             }
         }
         return qq{CREATE TABLE "$create-table.name()" (\n} ~ @steps.join(",\n") ~ "\n);\n";
+    }
+
+    multi method translate-up(DB::Migraion::Declare::Model::AlterTable $alter-table --> Str) {
+        my @steps = $alter-table.steps.map: {
+            when DB::Migraion::Declare::Model::AddColumn {
+                'ADD COLUMN ' ~ self!column($_)
+            }
+            when DB::Migraion::Declare::Model::PrimaryKey {
+                'ADD ' ~ self!primary-key($_)
+            }
+            when DB::Migraion::Declare::Model::UniqueKey {
+                'ADD ' ~ self!unique-key($_)
+            }
+            when DB::Migraion::Declare::Model::ForeignKey {
+                'ADD ' ~ self!foreign-key($_)
+            }
+            default {
+                die "Sorry, { .^name } is not yet implemented for Postgres up migration generation";
+            }
+        }
+        return qq{ALTER TABLE "$alter-table.name()"\n} ~ @steps.join(",\n") ~ ";\n";
     }
 
     multi method translate-up(DB::Migraion::Declare::Model::DropTable $drop-table --> Str) {
@@ -183,6 +204,27 @@ class DB::Migration::Declare::Database::Postgres does DB::Migration::Declare::Da
     multi method translate-up(DB::Migraion::Declare::Model::ExecuteSQL $execute-sql --> Str) {
         my Str $sql = $execute-sql.up.get-sql(:database(self)).trim-trailing;
         $sql.ends-with(';') ?? "$sql\n" !! "$sql;\n"
+    }
+
+    method !column(DB::Migraion::Declare::Model::AddColumn $_ --> Str) {
+        qq/"{.name}" / ~
+                (.increments ?? self.increments-type(.type) !! self.translate-type(.type)) ~
+                self.default(.default, .type) ~
+                self.nullness(.null)
+    }
+
+    method !primary-key(DB::Migraion::Declare::Model::PrimaryKey $_ --> Str) {
+        'PRIMARY KEY (' ~ .column-names.map({ qq{"$_"} }).join(", ") ~ ')'
+    }
+
+    method !unique-key(DB::Migraion::Declare::Model::UniqueKey $_ --> Str) {
+        'UNIQUE (' ~ .column-names.map({ qq{"$_"} }).join(", ") ~ ')'
+    }
+
+    method !foreign-key(DB::Migraion::Declare::Model::ForeignKey $_ --> Str) {
+        'FOREIGN KEY (' ~ .from.map({ qq{"$_"} }).join(", ") ~ ') REFERENCES "' ~ .table ~
+                '" (' ~ .to.map({ qq{"$_"} }).join(", ") ~ ')' ~
+                (.cascade ?? ' ON DELETE CASCADE' !! .restrict ?? ' ON DELETE RESTRICT' !! '')
     }
 
     multi method default(DB::Migration::Declare::SQLLiteral:D $sql, DB::Migration::Declare::ColumnType $type --> Str) {

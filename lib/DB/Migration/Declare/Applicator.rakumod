@@ -159,6 +159,9 @@ class DB::Migration::Declare::Applicator {
         my $schema = DB::Migration::Declare::Schema.new(target-database => $!database);
         my @to-apply;
         my @generated-sql;
+        for @past -> DB::Migraion::Declare::Model::Migration $migration {
+            $migration.apply-to($schema);
+        }
         for @future -> DB::Migraion::Declare::Model::Migration $migration {
             @to-apply.push($migration);
             @generated-sql.push($migration.generate-up-sql($schema));
