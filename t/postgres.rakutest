@@ -60,6 +60,43 @@ test-service 'postgres', -> (:$conninfo, *%) {
         lives-ok { $status = $applicator.to-latest }, 'No error when running migration again';
         is $status.migrations.elems, 0, 'No migrations were applied';
     }
+
+    subtest 'Error when inconsistent history' => {
+        my $applicator = DB::Migration::Declare::Applicator.new:
+                schema-id => 'test',
+                source => $*PROGRAM.parent.add('test-data/single-create-table-wrongly-modified.raku'),
+                database => DB::Migration::Declare::Database::Postgres.new,
+                connection => $conn;
+        throws-like { $applicator.to-latest },
+                X::DB::Migration::Declare::InconsistentHistory,
+                specification-description => 'Setup',
+                stored-description => 'Setup',
+                'Error when specification has been modified independent of the database';
+    }
+
+    subtest 'Additional migrations are applied' => {
+        dies-ok { $conn.query('insert into countries (name) values ($1)', 'United Arab Emirates'); },
+                'Insert query fails before running migration that adds second table';
+
+        my $applicator = DB::Migration::Declare::Applicator.new:
+                schema-id => 'test',
+                source => $*PROGRAM.parent.add('test-data/add-second-table.raku'),
+                database => DB::Migration::Declare::Database::Postgres.new,
+                connection => $conn;
+        my DB::Migration::Declare::Applicator::MigrationOutcome $status;
+        lives-ok { $status = $applicator.to-latest }, 'No error when running additional migration';
+        is $status.migrations.elems, 1, 'One further migration was applied';
+
+        lives-ok { $conn.query('insert into countries (name) values ($1)', 'United Arab Emirates'); },
+                'Insert query works after migration created second tablee';
+        is $conn.query('select id, name, height from skyscrapers order by id').hashes.elems, 2,
+                'Data in table created by previous migration still in place';
+        given $conn.query('select id, name from countries').hashes -> @results {
+            is @results.elems, 1, 'Have data inserted into newly created table';
+            is @results[0]<id>, 1, 'Correct value (1)';
+            is @results[0]<name>, 'United Arab Emirates', 'Correct value (2)';
+        }
+    }
 }
 
 END done-testing;

@@ -4,6 +4,53 @@ use DB::Migration::Declare::MigrationDirection;
 use DB::Migration::Declare::Model;
 use DB::Migration::Declare::Schema;
 
+#| Exception thrown when there is inconsistent migration history in the specification versus
+#| the database migration history.
+class X::DB::Migration::Declare::InconsistentHistory is Exception {
+    #| The description of the migration in the declarative specification (code).
+    has Str $.specification-description is required;
+
+    #| The hash of the migration in the declarative specification (code).
+    has Str $.specification-hash is required;
+
+    #| The file where the migration specification is located.
+    has Str $.specification-file is required;
+
+    #| The line number where the migration specification is located.
+    has Int $.specification-line is required;
+
+    #| The description of the migration in the stored history (database).
+    has Str $.stored-description is required;
+
+    #| The hash of the migration in the stored history (database).
+    has Str $.stored-hash is required;
+
+    #| The version number where there is an inconsistency.
+    has Int $.version is required;
+
+    method message(--> Str) {
+        if $!version == 1 {
+            "The first migration '$!specification-description' ($!specification-file:$!specification-line)\n" ~
+                "does not match with the first migration applied to the database.\n" ~
+                "It may have been modified accidentally, or the wrong migrations may\n" ~
+                "be being applied to the database."
+        }
+        elsif $!specification-description eq $!stored-description {
+            "The migration '$!specification-description' ($!specification-file:$!specification-line)\n" ~
+                "appears to have changed in the source code since it was applied.\n" ~
+                "Applied migration specifications must not be changed after they are\n" ~
+                "applied; consider using version control history to diagnose and fix this."
+        }
+        else {
+            "The migration '$!specification-description' ($!specification-file:$!specification-line)\n" ~
+                "does not match the observed migration '$!stored-description' in the databas.\n" ~
+                "Changes to migrations that have already been applied, or insertions/deletions of\n" ~
+                "migrations to the specification, are not allowed. Consider using version control\n" ~
+                "history to diagnose and fix this."
+        }
+    }
+}
+
 #| Loads migrations and applies them to a target database.
 class DB::Migration::Declare::Applicator {
     #| An ID identifying the schema that is established/managed by this migration.
@@ -80,28 +127,49 @@ class DB::Migration::Declare::Applicator {
             }
         }
 
-        # Load the existing migration history.
-        # TODO Compare history and migration
-        my $history = $!database.load-migration-history($!connection, $!schema-id);
-        if $history.entries.elems > 0 {
-            return MigrationOutcome.new(migrations => (), direction => Up)
+        # Load the existing migration history, and follow it according to the current
+        # specification, dividing the migration specification into past and future.
+        my $db-history = $!database.load-migration-history($!connection, $!schema-id);
+        my @past;
+        my @future = $!migration-list.migrations;
+        for $db-history.entries -> DB::Migration::Declare::MigrationHistory::Entry $entry {
+            if $entry.direction == MigrationDirection::Up {
+                my DB::Migraion::Declare::Model::Migration $expected = @future[0];
+                my $expected-hash = $expected.hashed;
+                if $expected-hash eq $entry.hash {
+                    @past.push: @future.shift;
+                }
+                else {
+                    die X::DB::Migration::Declare::InconsistentHistory.new:
+                            version => $entry.version,
+                            specification-hash => $expected-hash,
+                            specification-description => $expected.description,
+                            specification-file => $expected.file,
+                            specification-line => $expected.line,
+                            stored-hash => $entry.hash,
+                            stored-description => $entry.description;
+                }
+            }
+            else {
+                !!! "Downward migration is not yet implemented"
+            }
         }
 
-        # Generate SQL for each migration.
+        # Generate SQL for each future migration to apply.
         my $schema = DB::Migration::Declare::Schema.new(target-database => $!database);
         my @to-apply;
         my @generated-sql;
-        for $!migration-list.migrations -> DB::Migraion::Declare::Model::Migration $migration {
+        for @future -> DB::Migraion::Declare::Model::Migration $migration {
             @to-apply.push($migration);
             @generated-sql.push($migration.generate-up-sql($schema));
         }
 
         # Now do the application of the migrations.
         my @applied;
+        my $current-version = $db-history.entries ?? $db-history.entries[* - 1].version !! 0;
         for flat @to-apply Z @generated-sql -> $migration, $sql {
             $!database.apply-migration-sql($!connection, $sql);
-            # TODO Proper version
-            $!database.add-migration-history-entry($!connection, $!schema-id, 1, $migration.hashed,
+            $!database.add-migration-history-entry($!connection, $!schema-id, ++$current-version, $migration.hashed,
                     MigrationDirection::Up, $migration.description);
             @applied.push: AppliedMigration.new: :description($migration.description), :$sql;
         }
