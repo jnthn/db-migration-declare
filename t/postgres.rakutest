@@ -116,6 +116,22 @@ test-service 'postgres', -> (:$conninfo, *%) {
         dies-ok { $conn.query('update skyscrapers set country = 42 where id = 1;'); },
                 'Foreign key specification is enforced';
     }
+
+    subtest 'Migration dropping column and table works' => {
+        my $applicator = DB::Migration::Declare::Applicator.new:
+                schema-id => 'test',
+                source => $*PROGRAM.parent.add('test-data/drop-stuff.raku'),
+                database => DB::Migration::Declare::Database::Postgres.new,
+                connection => $conn;
+        my DB::Migration::Declare::Applicator::MigrationOutcome $status;
+        lives-ok { $status = $applicator.to-latest }, 'No error when running additional migration';
+        is $status.migrations.elems, 1, 'One further migration was applied';
+
+        dies-ok { $conn.query('select id, name from countries') },
+                'Query on dropped countries table fails';
+        dies-ok { $conn.query('select country from skyscrapers') },
+                'Query to update dropped country column fails';
+    }
 }
 
 END done-testing;

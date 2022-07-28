@@ -181,6 +181,9 @@ class DB::Migration::Declare::Database::Postgres does DB::Migration::Declare::Da
             when DB::Migraion::Declare::Model::AddColumn {
                 'ADD COLUMN ' ~ self!column($_)
             }
+            when DB::Migraion::Declare::Model::DropColumn {
+                'DROP COLUMN "' ~ .name ~ '"'
+            }
             when DB::Migraion::Declare::Model::PrimaryKey {
                 'ADD ' ~ self!primary-key($_)
             }
