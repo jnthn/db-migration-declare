@@ -27,6 +27,10 @@ role DB::Migration::Declare::Database {
     #| Ensure migration tracking table(s) are established in the database.
     method ensure-migration-state-storage(Any $connection --> Nil) { ... }
 
+    #| Run database queries and commands (including DDL) within a transaction, as best as the
+    #| database is able.
+    method run-in-transaction(Any $connection, &operation --> Nil) { ... }
+
     #| Load the history of migrations applied to this database.
     method load-migration-history(Any $connection, Str $schema-id --> DB::Migration::Declare::MigrationHistory) { ... }
 

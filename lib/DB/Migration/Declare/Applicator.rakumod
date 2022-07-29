@@ -127,54 +127,57 @@ class DB::Migration::Declare::Applicator {
             }
         }
 
-        # Load the existing migration history, and follow it according to the current
-        # specification, dividing the migration specification into past and future.
-        my $db-history = $!database.load-migration-history($!connection, $!schema-id);
-        my @past;
-        my @future = $!migration-list.migrations;
-        for $db-history.entries -> DB::Migration::Declare::MigrationHistory::Entry $entry {
-            if $entry.direction == MigrationDirection::Up {
-                my DB::Migraion::Declare::Model::Migration $expected = @future[0];
-                my $expected-hash = $expected.hashed;
-                if $expected-hash eq $entry.hash {
-                    @past.push: @future.shift;
+        # Do the migration transitionally.
+        my @applied;
+        $!database.run-in-transaction: $!connection, -> $transaction {
+            # Load the existing migration history, and follow it according to the current
+            # specification, dividing the migration specification into past and future.
+            my $db-history = $!database.load-migration-history($transaction, $!schema-id);
+            my @past;
+            my @future = $!migration-list.migrations;
+            for $db-history.entries -> DB::Migration::Declare::MigrationHistory::Entry $entry {
+                if $entry.direction == MigrationDirection::Up {
+                    my DB::Migraion::Declare::Model::Migration $expected = @future[0];
+                    my $expected-hash = $expected.hashed;
+                    if $expected-hash eq $entry.hash {
+                        @past.push: @future.shift;
+                    }
+                    else {
+                        die X::DB::Migration::Declare::InconsistentHistory.new:
+                                version => $entry.version,
+                                specification-hash => $expected-hash,
+                                specification-description => $expected.description,
+                                specification-file => $expected.file,
+                                specification-line => $expected.line,
+                                stored-hash => $entry.hash,
+                                stored-description => $entry.description;
+                    }
                 }
                 else {
-                    die X::DB::Migration::Declare::InconsistentHistory.new:
-                            version => $entry.version,
-                            specification-hash => $expected-hash,
-                            specification-description => $expected.description,
-                            specification-file => $expected.file,
-                            specification-line => $expected.line,
-                            stored-hash => $entry.hash,
-                            stored-description => $entry.description;
+                    !!! "Downward migration is not yet implemented"
                 }
             }
-            else {
-                !!! "Downward migration is not yet implemented"
+
+            # Generate SQL for each future migration to apply.
+            my $schema = DB::Migration::Declare::Schema.new(target-database => $!database);
+            my @to-apply;
+            my @generated-sql;
+            for @past -> DB::Migraion::Declare::Model::Migration $migration {
+                $migration.apply-to($schema);
             }
-        }
+            for @future -> DB::Migraion::Declare::Model::Migration $migration {
+                @to-apply.push($migration);
+                @generated-sql.push($migration.generate-up-sql($schema));
+            }
 
-        # Generate SQL for each future migration to apply.
-        my $schema = DB::Migration::Declare::Schema.new(target-database => $!database);
-        my @to-apply;
-        my @generated-sql;
-        for @past -> DB::Migraion::Declare::Model::Migration $migration {
-            $migration.apply-to($schema);
-        }
-        for @future -> DB::Migraion::Declare::Model::Migration $migration {
-            @to-apply.push($migration);
-            @generated-sql.push($migration.generate-up-sql($schema));
-        }
-
-        # Now do the application of the migrations.
-        my @applied;
-        my $current-version = $db-history.entries ?? $db-history.entries[* - 1].version !! 0;
-        for flat @to-apply Z @generated-sql -> $migration, $sql {
-            $!database.apply-migration-sql($!connection, $sql);
-            $!database.add-migration-history-entry($!connection, $!schema-id, ++$current-version, $migration.hashed,
-                    MigrationDirection::Up, $migration.description);
-            @applied.push: AppliedMigration.new: :description($migration.description), :$sql;
+            # Now do the application of the migrations.
+            my $current-version = $db-history.entries ?? $db-history.entries[*- 1].version !! 0;
+            for flat @to-apply Z @generated-sql -> $migration, $sql {
+                $!database.apply-migration-sql($transaction, $sql);
+                $!database.add-migration-history-entry($transaction, $!schema-id, ++$current-version, $migration.hashed,
+                        MigrationDirection::Up, $migration.description);
+                @applied.push: AppliedMigration.new: :description($migration.description), :$sql;
+            }
         }
         return MigrationOutcome.new(migrations => @applied, direction => Up);
     }

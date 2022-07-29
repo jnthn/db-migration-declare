@@ -271,6 +271,20 @@ class DB::Migration::Declare::Database::Postgres does DB::Migration::Declare::Da
             SETUP
     }
 
+    method run-in-transaction(Any $connection, &operation --> Nil) {
+        my $db = $connection.db;
+        $db.begin;
+        {
+            operation($db);
+            $db.commit;
+            $db.finish;
+            CATCH {
+                $db.rollback;
+                $db.finish;
+            }
+        }
+    }
+
     method load-migration-history(Any $connection, Str $schema-id --> DB::Migration::Declare::MigrationHistory) {
         my @raw-entries = $connection.query(q:to/SQL/, $schema-id).hashes;
             SELECT version, migration, up, description, applied_at
