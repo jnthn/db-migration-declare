@@ -71,9 +71,6 @@ class DB::Migration::Declare::Applicator {
     #| Loaded list of migrations.
     has DB::Migraion::Declare::Model::MigrationList $!migration-list .= new;
 
-    #| The schema that we built, if any.
-    has DB::Migration::Declare::Schema $!schema;
-
     submethod TWEAK(--> Nil) {
         # Obtain migration files to load, in order.
         my @files = do if $!source.f {
