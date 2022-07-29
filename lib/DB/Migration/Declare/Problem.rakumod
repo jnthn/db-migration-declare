@@ -161,4 +161,9 @@ class X::DB::Migration::Declare::MigrationProblem is Exception {
 
     #| The problems with the migration.
     has DB::Migration::Declare::Problem @.problems is required;
+
+    method message(--> Str) {
+        "The migration '$!migration-description' at $!migration-file:$!migration-line has problems:\n" ~
+            @!problems.map({ '  ' ~ .message }).join("\n")
+    }
 }
