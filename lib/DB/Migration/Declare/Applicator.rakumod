@@ -77,7 +77,7 @@ class DB::Migration::Declare::Applicator {
             $!source
         }
         elsif $!source.d {
-            $!source.dir(test => *.f).sort(~*)
+            $!source.dir().grep(*.f).sort(~*)
         }
         else {
             die "Could not find a migration file or directory at '$!source'";

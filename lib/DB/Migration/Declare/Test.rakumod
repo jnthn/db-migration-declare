@@ -9,7 +9,7 @@ sub check-migrations(IO::Path :$source!, DB::Migration::Declare::Database :$data
         $source
     }
     elsif $source.d {
-        $source.dir(test => *.f).sort(~*)
+        $source.dir().grep(*.f).sort(~*)
     }
     else {
         die "Could not find a migration file or directory at '$source'";
