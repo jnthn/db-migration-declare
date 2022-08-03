@@ -112,7 +112,7 @@ sub date(--> DB::Migration::Declare::ColumnType::Date) is export {
     DB::Migration::Declare::ColumnType::Date.new
 }
 
-sub timetamp(Bool :$timezone = False --> DB::Migration::Declare::ColumnType::Timestamp) is export {
+sub timestamp(Bool :$timezone = False --> DB::Migration::Declare::ColumnType::Timestamp) is export {
     DB::Migration::Declare::ColumnType::Timestamp.new(:$timezone)
 }
 
