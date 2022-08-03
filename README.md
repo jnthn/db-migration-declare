@@ -16,11 +16,12 @@ it might assist with migrations. This module is more aimed at those writing
 their queries in SQL, perhaps using something like Badger to have those SQL
 queries neatly wrapped up in Raku subs and thus avoid inline SQL.
 
-**Warning**: The module should currently be considered an early BETA. For the
-immediate future only Postgres support is planned, although if somebody shows
-up with a PR for another database, it will be gladly received!
+**Warning**: The module should currently be considered as a BETA-quality
+minimum viable product. Of note, only Postgres support is currently available,
+migrations can only be applied in the "up" direction, and various quite kinds
+of database change are not yet implemented.
 
-## Getting Started
+## Setup
 
 ### Writing migrations
 
@@ -145,3 +146,77 @@ note "Applied $status.migrations.elems() migration(s)";
 Depending on your situation, you might have this as a distinct script, or
 place it in the startup script for a Cro service to run the migrations upon
 startup.
+
+## Migration DSL
+
+Top-level operations supported within a migration are:
+
+* `create-table(Str $name, &steps)`
+* `alter-table(Str $name, &steps)`
+* `drop-table(Str $name)`
+* `execute(SQLLiteral :$up!, SQLLiteral :$down!)`
+
+Within both `create-table` and `alter-table` one can use:
+
+* `add-column(Str $name, $type, Bool :$increments, Bool :$null, Any :$default,
+  Bool :$primary, Bool :$unique)`
+* `primary-key(*@column-names)`
+* `unique-key(*@column-names)`
+* `foriegn-key(Str :$from!, Str :$table!, Str :$to = $from, Bool :$restrict = False,
+  Bool :$cascade = False)`
+* `foriegn-key(:@from!, Str :$table!, :@to = @from, Bool :$restrict = False,
+  Bool :$cascade = False)`
+
+Only within `alter-table` one can use:
+
+* `drop-column(Str $name)`
+
+Column types are specified using any of the following functions:
+
+* `char(Int $length)`
+* `varchar(Int $length)`
+* `text()`
+* `boolean()`
+* `integer(Int $bytes = 4)` (only 2, 4, and 8 are reliably supported)
+* `date()`
+* `timestamp(Bool :$timezone = False)` (a date/time)
+* `arr($type, *@dimensions)` (dimensions are integers for fixed size of `*`
+  for variable size; specifying no dimensions results in a variable-length
+  single dimensional array)
+* `type(Str $name, Bool :$checked = True)` (any other type, checked by the
+  database backend against a known type list by default, but trusted and
+  passed along regardless if `:!checked`)
+
+SQL literals can be constructed either:
+
+* Database agnostic: `sql(Str $sql)`
+* Database specific: `sql(*%options)` (where the named argument names are database
+  IDs, such as `postgres`, and the argument value is the SQL) 
+* Polymorphic "now": `now()` (becomes the Right Thing depending on database and
+  column type when used as the default value of a date or timestamp column)
+
+## Planned Features
+
+* Migration DSL
+    * Column renaming
+    * Indexes (currently only those implied by keys are available)
+    * Key and index dropping
+    * Column type and constraint alternation
+    * Column type declaration using Raku types
+    * Views
+    * Stored procedures
+    * Table-valued functions
+* Tooling
+    * CLI: view migration history on a database against what is applied
+    * CLI: trigger up/down migrations
+    * CLI: use information schema to extract an initial migration and set
+      things up as if it was already applied, to ease getting started
+    * Comma: add migrations dependency, tests, etc.
+    * Comma: live annotation of migration problems
+* Seed data insertion
+* Schema export
+* Down migrations
+* Configurable data retention on lossy migrations in either direction
+* Database support
+    * SQLite
+    * MySQL
