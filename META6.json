@@ -1,6 +1,6 @@
 {
   "name": "DB::Migration::Declare",
-  "description": "Specify database migrations using a Raku DSL. Currently Postgres only, and very much a BETA.",
+  "description": "Specify database migrations using a Raku DSL. Currently Postgres only.",
   "version": "0.1",
   "perl": "6.d",
   "authors": [
@@ -30,6 +30,6 @@
     "DB::Migration::Declare::Test": "lib/DB/Migration/Declare/Test.rakumod"
   },
   "resources": [],
-  "license": "Write me!",
-  "source-url": "Write me!"
+  "license": "Artistic-2.0",
+  "source-url": "https://github.com/jnthn/db-migration-declare.git"
 }
