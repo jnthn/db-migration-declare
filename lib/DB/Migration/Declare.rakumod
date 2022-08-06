@@ -72,14 +72,17 @@ sub unique-key(*@column-names --> Nil) is export {
     $*DMD-MODEL-TABLE.add-step(DB::Migraion::Declare::Model::UniqueKey.new(:@column-names));
 }
 
-multi sub foriegn-key(Str :$from!, Str :$table!, Str :$to = $from, Bool :$restrict = False,
+multi sub foreign-key(Str :$from!, Str :$table!, Str :$to = $from, Bool :$restrict = False,
                       Bool :$cascade = False --> Nil) is export {
-    foriegn-key :from[$from], :$table, :to[$to], :$restrict, :$cascade
+    foreign-key :from[$from], :$table, :to[$to], :$restrict, :$cascade
 }
-multi sub foriegn-key(:@from!, Str :$table!, :@to = @from, Bool :$restrict = False,
+multi sub foreign-key(:@from!, Str :$table!, :@to = @from, Bool :$restrict = False,
                       Bool :$cascade = False --> Nil) is export {
     $*DMD-MODEL-TABLE.add-step: DB::Migraion::Declare::Model::ForeignKey.new:
             :@from, :$table, :@to, :$restrict, :$cascade
+}
+sub foriegn-key(|c) is export is DEPRECATED {
+    foreign-key(|c)
 }
 
 multi sub execute(DB::Migration::Declare::SQLLiteral :$up!, DB::Migration::Declare::SQLLiteral :$down! --> Nil) is export {

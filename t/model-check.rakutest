@@ -532,7 +532,7 @@ lives-ok
                         add-column 'id', integer(), :increments, :primary;
                         add-column 'customer', integer(), :!null;
                         add-column 'title', text(), :!null;
-                        foriegn-key from => 'customer', to => 'id', table => 'customers';
+                        foreign-key from => 'customer', to => 'id', table => 'customers';
                     }
                 }
             }
@@ -554,7 +554,7 @@ lives-ok
                         add-column 'id', integer(), :increments, :primary;
                         add-column 'customer', integer(), :!null;
                         add-column 'title', text(), :!null;
-                        foriegn-key from => 'customer', to => 'id', table => 'customers';
+                        foreign-key from => 'customer', to => 'id', table => 'customers';
                     }
                 }
             }
@@ -574,7 +574,7 @@ throws-like
                         add-column 'id', integer(), :increments, :primary;
                         add-column 'customer', integer(), :!null;
                         add-column 'title', text(), :!null;
-                        foriegn-key from => 'customer', to => 'id', table => 'customer';
+                        foreign-key from => 'customer', to => 'id', table => 'customer';
                     }
                 }
             }
@@ -602,7 +602,7 @@ throws-like
                         add-column 'id', integer(), :increments, :primary;
                         add-column 'customer', integer(), :!null;
                         add-column 'title', text(), :!null;
-                        foriegn-key from => 'customers', to => 'id', table => 'customers';
+                        foreign-key from => 'customers', to => 'id', table => 'customers';
                     }
                 }
             }
@@ -631,7 +631,7 @@ throws-like
                         add-column 'id', integer(), :increments, :primary;
                         add-column 'customer', integer(), :!null;
                         add-column 'title', text(), :!null;
-                        foriegn-key from => 'customer', to => 'di', table => 'customers';
+                        foreign-key from => 'customer', to => 'di', table => 'customers';
                     }
                 }
             }
@@ -665,8 +665,8 @@ throws-like
                         add-column 'customer', integer(), :!null;
                         add-column 'title', text(), :!null;
                         add-column 'product', text(), :!null;
-                        foriegn-key from => 'customer', to => 'id', table => 'customers';
-                        foriegn-key from => 'customer', to => 'id', table => 'products';
+                        foreign-key from => 'customer', to => 'id', table => 'customers';
+                        foreign-key from => 'customer', to => 'id', table => 'products';
                     }
                 }
             }
@@ -689,7 +689,7 @@ lives-ok
                         add-column 'id', integer(), :increments, :primary;
                         add-column 'name', text(), :!null;
                         add-column 'manager', integer();
-                        foriegn-key from => 'manager', table => 'employees', to => 'id'
+                        foreign-key from => 'manager', table => 'employees', to => 'id'
                     }
                 }
             }
@@ -704,7 +704,7 @@ throws-like
                         add-column 'id', integer(), :increments, :primary;
                         add-column 'name', text(), :!null;
                         add-column 'manager', integer();
-                        foriegn-key from => 'manager', table => 'employees', to => 'manager'
+                        foreign-key from => 'manager', table => 'employees', to => 'manager'
                     }
                 }
             }
@@ -736,7 +736,7 @@ lives-ok
                         add-column 'customer_region', integer(), :!null;
                         add-column 'customer_name', varchar(64), :!null;
                         add-column 'title', text(), :!null;
-                        foriegn-key from => ['customer_region', 'customer_name'], to => ['region', 'name'], table => 'customers';
+                        foreign-key from => ['customer_region', 'customer_name'], to => ['region', 'name'], table => 'customers';
                     }
                 }
             }
@@ -760,7 +760,7 @@ throws-like
                         add-column 'customer_region', integer(), :!null;
                         add-column 'customer_name', varchar(64), :!null;
                         add-column 'title', text(), :!null;
-                        foriegn-key from => ['customer_region', 'customer_name'], to => ['region', 'name'], table => 'customurs';
+                        foreign-key from => ['customer_region', 'customer_name'], to => ['region', 'name'], table => 'customurs';
                     }
                 }
             }
@@ -792,7 +792,7 @@ throws-like
                         add-column 'customer_region', integer(), :!null;
                         add-column 'customer_name', varchar(64), :!null;
                         add-column 'title', text(), :!null;
-                        foriegn-key from => ['customer_region', 'custom_name'], to => ['region', 'name'], table => 'customers';
+                        foreign-key from => ['customer_region', 'custom_name'], to => ['region', 'name'], table => 'customers';
                     }
                 }
             }
@@ -825,7 +825,7 @@ throws-like
                         add-column 'customer_region', integer(), :!null;
                         add-column 'customer_name', varchar(64), :!null;
                         add-column 'title', text(), :!null;
-                        foriegn-key from => ['customer_region', 'customer_name'], to => ['region', 'namen'], table => 'customers';
+                        foreign-key from => ['customer_region', 'customer_name'], to => ['region', 'namen'], table => 'customers';
                     }
                 }
             }
@@ -858,8 +858,8 @@ throws-like
                         add-column 'customer_region', integer(), :!null;
                         add-column 'customer_name', varchar(64), :!null;
                         add-column 'title', text(), :!null;
-                        foriegn-key from => ['customer_region', 'customer_name'], to => ['region', 'name'], table => 'customers';
-                        foriegn-key from => ['customer_name', 'customer_region'], to => ['name', 'region'], table => 'customers';
+                        foreign-key from => ['customer_region', 'customer_name'], to => ['region', 'name'], table => 'customers';
+                        foreign-key from => ['customer_name', 'customer_region'], to => ['name', 'region'], table => 'customers';
                     }
                 }
             }
@@ -884,7 +884,7 @@ lives-ok
                         add-column 'name', text(), :!null;
                         add-column 'manager_ssid', integer();
                         add-column 'manager_country', integer();
-                        foriegn-key from => ['manager_ssid', 'manager_country'], table => 'employees', to => ['ssid', 'country']
+                        foreign-key from => ['manager_ssid', 'manager_country'], table => 'employees', to => ['ssid', 'country']
                     }
                 }
             }
@@ -901,7 +901,7 @@ throws-like
                         add-column 'name', text(), :!null;
                         add-column 'manager_ssid', integer();
                         add-column 'manager_country', integer();
-                        foriegn-key from => ['manager_ssid', 'manager_country'], table => 'employees', to => ['manager_ssid', 'manager_country']
+                        foreign-key from => ['manager_ssid', 'manager_country'], table => 'employees', to => ['manager_ssid', 'manager_country']
                     }
                 }
             }

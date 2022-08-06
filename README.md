@@ -67,7 +67,7 @@ migration 'Add countries', {
 
     alter-table 'skyscrapers',{
         add-column 'country', integer();
-        foriegn-key table => 'countries', from => 'country', to => 'id';
+        foreign-key table => 'countries', from => 'country', to => 'id';
     }
 }
 ```
@@ -103,7 +103,7 @@ If we were to introduce an error into the migration:
 ```
     alter-table 'skyskrapers',{
         add-column 'country', integer();
-        foriegn-key table => 'countries', from => 'country', to => 'id';
+        foreign-key table => 'countries', from => 'country', to => 'id';
     }
 ```
 
@@ -162,9 +162,9 @@ Within both `create-table` and `alter-table` one can use:
   Bool :$primary, Bool :$unique)`
 * `primary-key(*@column-names)`
 * `unique-key(*@column-names)`
-* `foriegn-key(Str :$from!, Str :$table!, Str :$to = $from, Bool :$restrict = False,
+* `foreign-key(Str :$from!, Str :$table!, Str :$to = $from, Bool :$restrict = False,
   Bool :$cascade = False)`
-* `foriegn-key(:@from!, Str :$table!, :@to = @from, Bool :$restrict = False,
+* `foreign-key(:@from!, Str :$table!, :@to = @from, Bool :$restrict = False,
   Bool :$cascade = False)`
 
 Only within `alter-table` one can use:

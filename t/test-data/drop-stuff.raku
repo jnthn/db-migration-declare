@@ -20,7 +20,7 @@ migration 'Add countries', {
 migration 'Skypscraper countries', {
     alter-table 'skyscrapers',{
         add-column 'country', integer();
-        foriegn-key table => 'countries', from => 'country', to => 'id';
+        foreign-key table => 'countries', from => 'country', to => 'id';
     }
 }
 
