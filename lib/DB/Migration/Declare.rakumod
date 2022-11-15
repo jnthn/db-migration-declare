@@ -57,6 +57,19 @@ sub add-column(Str $name, $type, Bool :$increments, Bool :$null = !$increments, 
     }
 }
 
+multi rename-column(Str $from, Str $to --> Nil) is export {
+    ensure-in-alter-table('rename-column');
+    $*DMD-MODEL-TABLE.add-step(DB::Migraion::Declare::Model::RenameColumn.new(:$from, :$to));
+}
+
+multi rename-column(Str :$from!, Str :$to! --> Nil) is export {
+    rename-column($from, $to);
+}
+
+multi rename-column(Pair $renaming --> Nil) is export {
+    rename-column(~$renaming.key, ~$renaming.value);
+}
+
 sub drop-column(Str $name --> Nil) is export {
     ensure-in-alter-table('drop-column');
     $*DMD-MODEL-TABLE.add-step(DB::Migraion::Declare::Model::DropColumn.new(:$name));

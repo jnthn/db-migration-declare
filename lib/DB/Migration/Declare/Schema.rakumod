@@ -8,6 +8,10 @@ class DB::Migration::Declare::Schema {
     class Column {
         #| The name of the column.
         has Str $.name;
+
+        method rename(Str $to --> Nil) {
+            $!name = $to;
+        }
     }
 
     #| A foreign key.
@@ -64,6 +68,13 @@ class DB::Migration::Declare::Schema {
             @!columns.push($column);
             %!column-lookup{$name} = @!columns.end;
             return $column;
+        }
+
+        #| Rename a column.
+        method rename-column(Str $from, Str $to --> Nil) {
+            my $index = %!column-lookup{$from}:delete // fail "No such column '$from'";
+            %!column-lookup{$to} = $index;
+            @!columns[$index].rename($to);
         }
 
         #| Remove a column.
@@ -137,5 +148,12 @@ class DB::Migration::Declare::Schema {
     #| Remove a table.
     method remove-table(Str $name --> Nil) {
         %!tables{$name}:delete // fail "No such table '$name'";
+    }
+
+    #| Rename a column in a table. At schema level as it can impact foreign
+    #| keys that reference the column.
+    method rename-column(Table $table, Str $from, Str $to --> Nil) {
+        # TODO Handle foreign key relationships
+        $table.rename-column($from, $to);
     }
 }

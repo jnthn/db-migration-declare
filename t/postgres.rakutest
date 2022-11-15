@@ -132,6 +132,22 @@ test-service 'postgres', -> (:$conninfo, *%) {
         dies-ok { $conn.query('select country from skyscrapers') },
                 'Query to update dropped country column fails';
     }
+
+    subtest 'Migration renaming column works' => {
+        my $applicator = DB::Migration::Declare::Applicator.new:
+                schema-id => 'test',
+                source => $*PROGRAM.parent.add('test-data/rename-column.raku'),
+                database => DB::Migration::Declare::Database::Postgres.new,
+                connection => $conn;
+        my DB::Migration::Declare::Applicator::MigrationOutcome $status;
+        lives-ok { $status = $applicator.to-latest }, 'No error when running additional migration';
+        is $status.migrations.elems, 1, 'One further migration was applied';
+
+        dies-ok { $conn.query('select height from skyscrapers') },
+                'Query using old column name fails';
+        is $conn.query('select id, name, architectural_height from skyscrapers order by id').hashes.elems, 2,
+                'Query using column name works';
+    }
 }
 
 END done-testing;

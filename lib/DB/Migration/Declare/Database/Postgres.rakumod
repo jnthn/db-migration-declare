@@ -177,27 +177,35 @@ class DB::Migration::Declare::Database::Postgres does DB::Migration::Declare::Da
     }
 
     multi method translate-up(DB::Migraion::Declare::Model::AlterTable $alter-table --> Str) {
-        my @steps = $alter-table.steps.map: {
-            when DB::Migraion::Declare::Model::AddColumn {
-                'ADD COLUMN ' ~ self!column($_)
+        # Unfortunately, not all table alterations can be added to a single
+        # ALTER TABLE (for example, RENAME COLUMN). Thus, emit every one as
+        # its own ALTER TABLE statement.
+        join "", $alter-table.steps.map: {
+            my $operation = do {
+                when DB::Migraion::Declare::Model::AddColumn {
+                    'ADD COLUMN ' ~ self!column($_)
+                }
+                when DB::Migraion::Declare::Model::RenameColumn {
+                    'RENAME COLUMN "' ~ .from ~ '" TO "' ~ .to ~ '"'
+                }
+                when DB::Migraion::Declare::Model::DropColumn {
+                    'DROP COLUMN "' ~ .name ~ '"'
+                }
+                when DB::Migraion::Declare::Model::PrimaryKey {
+                    'ADD ' ~ self!primary-key($_)
+                }
+                when DB::Migraion::Declare::Model::UniqueKey {
+                    'ADD ' ~ self!unique-key($_)
+                }
+                when DB::Migraion::Declare::Model::ForeignKey {
+                    'ADD ' ~ self!foreign-key($_)
+                }
+                default {
+                    die "Sorry, { .^name } is not yet implemented for Postgres up migration generation";
+                }
             }
-            when DB::Migraion::Declare::Model::DropColumn {
-                'DROP COLUMN "' ~ .name ~ '"'
-            }
-            when DB::Migraion::Declare::Model::PrimaryKey {
-                'ADD ' ~ self!primary-key($_)
-            }
-            when DB::Migraion::Declare::Model::UniqueKey {
-                'ADD ' ~ self!unique-key($_)
-            }
-            when DB::Migraion::Declare::Model::ForeignKey {
-                'ADD ' ~ self!foreign-key($_)
-            }
-            default {
-                die "Sorry, { .^name } is not yet implemented for Postgres up migration generation";
-            }
+            qq{ALTER TABLE "$alter-table.name()" $operation;\n}
         }
-        return qq{ALTER TABLE "$alter-table.name()"\n} ~ @steps.join(",\n") ~ ";\n";
     }
 
     multi method translate-up(DB::Migraion::Declare::Model::DropTable $drop-table --> Str) {

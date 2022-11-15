@@ -59,6 +59,34 @@ class AddColumn does CreateOrAlterTableStep {
     }
 }
 
+#| Renaming a column.
+class RenameColumn does AlterTableStep {
+    has Str $.from is required;
+    has Str $.to is required;
+
+    method apply-to(DB::Migration::Declare::Schema $schema,
+                    DB::Migration::Declare::Schema::Table $table,
+                    @problems --> Nil) {
+        if $table.has-column($!from) {
+            if $table.has-column($!to) {
+                @problems.push: DB::Migration::Declare::Problem::ColumnRenameConflict.new:
+                        :table($table.name), :$!from, :$!to;
+            }
+            else {
+                $schema.rename-column($table, $!from, $!to);
+            }
+        }
+        else {
+            @problems.push: DB::Migration::Declare::Problem::NoSucColumn.new:
+                    :table($table.name), :name($!from), :action('rename');
+        }
+    }
+
+    method hashable-str(--> Str) {
+        join "\0", "RenameColumn", $!from, $!to
+    }
+}
+
 #| Dropping a column.
 class DropColumn does AlterTableStep {
     has Str $.name is required;

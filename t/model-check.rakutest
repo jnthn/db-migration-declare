@@ -1057,5 +1057,198 @@ throws-like
         },
         'Cannot use type that does not support auto-increment with :increments';
 
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'namr', text(), :!null;
+                    }
+                }
+                migration 'Rename column', {
+                    alter-table 'customers', {
+                        rename-column from => 'namr', to => 'namen';
+                    }
+                }
+                migration 'Rename column again', {
+                    alter-table 'customers', {
+                        rename-column from => 'namen', to => 'name';
+                    }
+                }
+            }
+        },
+        'Can perform column renaming and it is tracked';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                }
+                migration 'Rename column', {
+                    alter-table 'customers', {
+                        rename-column from => 'namr', to => 'namen';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Rename column',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSucColumn &&
+                    .[0].table eq 'customers' &&
+                    .[0].name eq 'namr' &&
+                    .[0].action eq 'rename'
+        },
+        'Renaming from a column that does not exist';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'namr', text(), :!null;
+                    }
+                }
+                migration 'Rename column', {
+                    alter-table 'customers', {
+                        rename-column from => 'namr', to => 'namen';
+                    }
+                }
+                migration 'Rename column again', {
+                    alter-table 'customers', {
+                        rename-column from => 'namer', to => 'name';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Rename column again',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSucColumn &&
+                    .[0].table eq 'customers' &&
+                    .[0].name eq 'namer' &&
+                    .[0].action eq 'rename'
+        },
+        'Renaming needs latest column name';
+
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'namr', text(), :!null;
+                    }
+                }
+                migration 'Rename column', {
+                    alter-table 'customers', {
+                        rename-column from => 'namr', to => 'name';
+                    }
+                }
+                migration 'Drop column', {
+                    alter-table 'customers', {
+                        drop-column 'name';
+                    }
+                }
+            }
+        },
+        'Dropping a column works with new name';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'namr', text(), :!null;
+                    }
+                }
+                migration 'Rename column', {
+                    alter-table 'customers', {
+                        rename-column from => 'namr', to => 'name';
+                    }
+                }
+                migration 'Drop column', {
+                    alter-table 'customers', {
+                        drop-column 'namr';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Drop column',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSucColumn &&
+                    .[0].table eq 'customers' &&
+                    .[0].name eq 'namr' &&
+                    .[0].action eq 'drop'
+        },
+        'Dropping needs latest column name';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'namr', text(), :!null;
+                    }
+                }
+                migration 'Rename column', {
+                    alter-table 'customers', {
+                        rename-column from => 'namr', to => 'namr';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Rename column',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::ColumnRenameConflict &&
+                    .[0].table eq 'customers' &&
+                    .[0].from eq 'namr' &&
+                    .[0].to eq 'namr'
+        },
+        'Cannot rename a column to the same name';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                        add-column 'login', text(), :!null;
+                    }
+                }
+                migration 'Rename column', {
+                    alter-table 'customers', {
+                        rename-column from => 'name', to => 'login';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Rename column',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::ColumnRenameConflict &&
+                    .[0].table eq 'customers' &&
+                    .[0].from eq 'name' &&
+                    .[0].to eq 'login'
+        },
+        'Cannot rename a column to a name that already exists in the table';
+
+# TODO: rename column tracked in unique, primary, and foreign keys
 
 done-testing;

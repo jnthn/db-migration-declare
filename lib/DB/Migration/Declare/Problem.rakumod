@@ -57,6 +57,24 @@ class DB::Migration::Declare::Problem::NoSucColumn does DB::Migration::Declare::
     }
 }
 
+#| An attempt to rename a column to a name that already exists.
+class DB::Migration::Declare::Problem::ColumnRenameConflict does DB::Migration::Declare::Problem {
+    #| The table name.
+    has Str $.table is required;
+
+    #| The current column name.
+    has Str $.from is required;
+
+    #| The conflicting new column name.
+    has Str $.to is required;
+
+    method message(--> Str) {
+        $!from eq $!to
+            ?? "Rename of column '$!from' in table '$!table' specifies the same from and to name"
+            !! "Cannot rename '$!from' column in table '$!table' to '$!to' because the table already has such a column"
+    }
+}
+
 #| An attempt to give a table more than one primary key.
 class DB::Migration::Declare::Problem::MultiplePrimaryKeys does DB::Migration::Declare::Problem {
     #| The table name.

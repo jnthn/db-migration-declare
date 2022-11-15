@@ -169,6 +169,8 @@ Within both `create-table` and `alter-table` one can use:
 
 Only within `alter-table` one can use:
 
+* `rename-column(Str $from, Str $to)` (or `rename-column(Str :$from!, Str :$to!)` or
+  `rename-column(Pair $renmaing)`)
 * `drop-column(Str $name)`
 
 Column types are specified using any of the following functions:
@@ -198,10 +200,10 @@ SQL literals can be constructed either:
 ## Planned Features
 
 * Migration DSL
-    * Column renaming
+    * Table renaming
     * Indexes (currently only those implied by keys are available)
     * Key and index dropping
-    * Column type and constraint alternation
+    * Column type and constraint alteration
     * Column type declaration using Raku types
     * Views
     * Stored procedures
