@@ -153,6 +153,8 @@ Top-level operations supported within a migration are:
 
 * `create-table(Str $name, &steps)`
 * `alter-table(Str $name, &steps)`
+* `rename-table(Str $from, Str $to)` (or `rename-table(Str :$from!, Str :$to!)` or
+  `rename-table(Pair $renmaing)`)
 * `drop-table(Str $name)`
 * `execute(SQLLiteral :$up!, SQLLiteral :$down!)`
 
@@ -200,7 +202,6 @@ SQL literals can be constructed either:
 ## Planned Features
 
 * Migration DSL
-    * Table renaming
     * Indexes (currently only those implied by keys are available)
     * Key and index dropping
     * Column type and constraint alteration

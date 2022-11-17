@@ -46,6 +46,11 @@ class DB::Migration::Declare::Schema {
         #| Foreign keys.
         has ForeignKey @!foreign-keys;
 
+        #| Rename the table.
+        method rename(Str $to --> Nil) {
+            $!name = $to;
+        }
+
         #| Get the columns that are part of this table.
         method columns() {
             @!columns.List
@@ -143,6 +148,14 @@ class DB::Migration::Declare::Schema {
         my $table = Table.new(:$name);
         %!tables{$name} = $table;
         $table
+    }
+
+    #| Rename a table.
+    method rename-table(Str $from, Str $to --> Nil) {
+        # TODO Handle foreign key relationships
+        my $table = %!tables{$from}:delete // fail "No such table '$from'";
+        $table.rename($to);
+        %!tables{$to} = $table;
     }
 
     #| Remove a table.

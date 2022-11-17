@@ -35,6 +35,19 @@ sub alter-table(Str $name, &spec --> Nil) is export {
     unique-key $_ for @*UNIQUES;
 }
 
+multi sub rename-table(Str $from, Str $to --> Nil) is export {
+    ensure-in-migrate('rename-table');
+    $*DMD-MODEL.add-step(DB::Migraion::Declare::Model::RenameTable.new(:$from, :$to));
+}
+
+multi sub rename-table(Str :$from!, Str :$to! --> Nil) is export {
+    rename-table($from, $to);
+}
+
+multi sub rename-table(Pair $renaming --> Nil) is export {
+    rename-table(~$renaming.key, ~$renaming.value);
+}
+
 sub drop-table(Str $name --> Nil) is export {
     ensure-in-migrate('drop-table');
     $*DMD-MODEL.add-step(DB::Migraion::Declare::Model::DropTable.new(:$name));

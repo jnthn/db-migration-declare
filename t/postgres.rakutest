@@ -146,7 +146,23 @@ test-service 'postgres', -> (:$conninfo, *%) {
         dies-ok { $conn.query('select height from skyscrapers') },
                 'Query using old column name fails';
         is $conn.query('select id, name, architectural_height from skyscrapers order by id').hashes.elems, 2,
-                'Query using column name works';
+                'Query using new column name works';
+    }
+
+    subtest 'Migration renaming table works' => {
+        my $applicator = DB::Migration::Declare::Applicator.new:
+                schema-id => 'test',
+                source => $*PROGRAM.parent.add('test-data/rename-table.raku'),
+                database => DB::Migration::Declare::Database::Postgres.new,
+                connection => $conn;
+        my DB::Migration::Declare::Applicator::MigrationOutcome $status;
+        lives-ok { $status = $applicator.to-latest }, 'No error when running additional migration';
+        is $status.migrations.elems, 1, 'One further migration was applied';
+
+        dies-ok { $conn.query('select name from skyscrapers') },
+                'Query using old table name fails';
+        is $conn.query('select name from tall_buildings').hashes.elems, 2,
+                'Query using new table name works';
     }
 }
 

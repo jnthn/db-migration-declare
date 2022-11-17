@@ -208,6 +208,10 @@ class DB::Migration::Declare::Database::Postgres does DB::Migration::Declare::Da
         }
     }
 
+    multi method translate-up(DB::Migraion::Declare::Model::RenameTable $rename-table --> Str) {
+        return qq{ALTER TABLE "$rename-table.from()" RENAME TO "$rename-table.to()";\n};
+    }
+
     multi method translate-up(DB::Migraion::Declare::Model::DropTable $drop-table --> Str) {
         return qq{DROP TABLE "$drop-table.name()";\n};
     }

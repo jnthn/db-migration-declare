@@ -28,6 +28,21 @@ class DB::Migration::Declare::Problem::NoSuchTable does DB::Migration::Declare::
     }
 }
 
+#| An attempt to rename a table to a name that already exists.
+class DB::Migration::Declare::Problem::TableRenameConflict does DB::Migration::Declare::Problem {
+    #| The current table name.
+    has Str $.from is required;
+
+    #| The conflicting new table name.
+    has Str $.to is required;
+
+    method message(--> Str) {
+        $!from eq $!to
+                ?? "Rename of table '$!from' specifies the same from and to name"
+                !! "Cannot rename table '$!from' to '$!to' because there is another table with that name"
+    }
+}
+
 #| Duplicate creation of the same column.
 class DB::Migration::Declare::Problem::DuplicateColumn does DB::Migration::Declare::Problem {
     #| The table name.

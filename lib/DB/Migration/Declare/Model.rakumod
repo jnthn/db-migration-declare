@@ -267,6 +267,32 @@ class AlterTable does DB::Migration::Declare::Model::MigrationStep {
     }
 }
 
+#| A table rename.
+class RenameTable does DB::Migration::Declare::Model::MigrationStep {
+    has Str $.from is required;
+    has Str $.to is required;
+
+    method apply-to(DB::Migration::Declare::Schema $schema, @problems --> Nil) {
+        if $schema.has-table($!from) {
+            if $schema.has-table($!to) {
+                @problems.push: DB::Migration::Declare::Problem::TableRenameConflict.new:
+                        :$!from, :$!to;
+            }
+            else {
+                $schema.rename-table($!from, $!to);
+            }
+        }
+        else {
+            @problems.push: DB::Migration::Declare::Problem::NoSuchTable.new:
+                    :name($!from), :action('rename');
+        }
+    }
+
+    method hashed(--> Str) {
+        sha1-hex(join "\0", "RenameTable", $!from, $!to)
+    }
+}
+
 #| A table drop.
 class DropTable does DB::Migration::Declare::Model::MigrationStep {
     has Str $.name is required;

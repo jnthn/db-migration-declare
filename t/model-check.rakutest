@@ -1251,4 +1251,123 @@ throws-like
 
 # TODO: rename column tracked in unique, primary, and foreign keys
 
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'costumers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                }
+                migration 'Rename table', {
+                    rename-table from => 'costumers', to => 'custumers';
+                }
+                migration 'Rename table again', {
+                    rename-table from => 'custumers', to => 'customers';
+                }
+            }
+        },
+        'Can rename a table multiple times';
+
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'costumers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                }
+                migration 'Rename table', {
+                    rename-table from => 'costumers', to => 'customers';
+                }
+                migration 'Drop table', {
+                    drop-table 'customers';
+                }
+            }
+        },
+        'Renaming a table makes that name available going forward';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'costumers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                }
+                migration 'Rename table', {
+                    rename-table from => 'costumers', to => 'customers';
+                }
+                migration 'Drop table', {
+                    drop-table 'costumers';
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Drop table',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSuchTable &&
+                    .[0].name eq 'costumers' &&
+                    .[0].action eq 'drop'
+        },
+        'Cannot drop table using its old name';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'costumers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                }
+                migration 'Rename table', {
+                    rename-table from => 'costomers', to => 'customers';
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Rename table',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSuchTable &&
+                    .[0].name eq 'costomers' &&
+                    .[0].action eq 'rename'
+        },
+        'Cannot rename a table that does not exist';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                    create-table 'clients', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'hostname', text(), :!null;
+                    }
+                }
+                migration 'Rename table', {
+                    rename-table from => 'customers', to => 'clients';
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Rename table',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::TableRenameConflict &&
+                    .[0].from eq 'customers' &&
+                    .[0].to eq 'clients'
+        },
+        'Cannot rename a table to a name that already exists in the database';
+
+# TODO: rename table column tracked in foreign keys
+
 done-testing;
