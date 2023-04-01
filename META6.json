@@ -1,7 +1,7 @@
 {
   "name": "DB::Migration::Declare",
   "description": "Specify database migrations using a Raku DSL. Currently Postgres only.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "perl": "6.d",
   "authors": [
     "Jonathan Worthington <jnthn@jnthn.net>"
