@@ -155,21 +155,16 @@ class DB::Migration::Declare::Applicator {
                 }
             }
 
-            # Generate SQL for each future migration to apply.
+            # Get the schema in sync with historical migrations.
             my $schema = DB::Migration::Declare::Schema.new(target-database => $!database);
-            my @to-apply;
-            my @generated-sql;
             for @past -> DB::Migraion::Declare::Model::Migration $migration {
                 $migration.apply-to($schema);
             }
-            for @future -> DB::Migraion::Declare::Model::Migration $migration {
-                @to-apply.push($migration);
-                @generated-sql.push($migration.generate-up-sql($schema));
-            }
 
-            # Now do the application of the migrations.
+            # Now apply the future migrations.
             my $current-version = $db-history.entries ?? $db-history.entries[*- 1].version !! 0;
-            for flat @to-apply Z @generated-sql -> $migration, $sql {
+            for @future -> DB::Migraion::Declare::Model::Migration $migration {
+                my $sql = $migration.generate-up-sql($schema, $transaction);
                 $!database.apply-migration-sql($transaction, $sql);
                 $!database.add-migration-history-entry($transaction, $!schema-id, ++$current-version, $migration.hashed,
                         MigrationDirection::Up, $migration.description);

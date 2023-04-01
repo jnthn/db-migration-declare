@@ -98,6 +98,11 @@ sub unique-key(*@column-names --> Nil) is export {
     $*DMD-MODEL-TABLE.add-step(DB::Migraion::Declare::Model::UniqueKey.new(:@column-names));
 }
 
+sub drop-unique-key(*@column-names --> Nil) is export {
+    ensure-in-table('drop-unique-key');
+    $*DMD-MODEL-TABLE.add-step(DB::Migraion::Declare::Model::DropUniqueKey.new(:@column-names));
+}
+
 multi sub foreign-key(Str :$from!, Str :$table!, Str :$to = $from, Bool :$restrict = False,
                       Bool :$cascade = False --> Nil) is export {
     foreign-key :from[$from], :$table, :to[$to], :$restrict, :$cascade

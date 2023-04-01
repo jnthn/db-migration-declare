@@ -113,6 +113,19 @@ class DB::Migration::Declare::Problem::DuplicateUniqueKey does DB::Migration::De
     }
 }
 
+#| An attempt to drop a unique key that doesn't exist.
+class DB::Migration::Declare::Problem::NoSuchUniqueKey does DB::Migration::Declare::Problem {
+    #| The table name.
+    has Str $.table is required;
+
+    #| The columns.
+    has @.columns;
+
+    method message(--> Str) {
+        "Table '$!table' has no unique key on @!columns.map({ "'$_'" }).join(', ')"
+    }
+}
+
 #| An attempt to give a table a duplicate foreign key.
 class DB::Migration::Declare::Problem::DuplicateForeignKey does DB::Migration::Declare::Problem {
     #| The table name.

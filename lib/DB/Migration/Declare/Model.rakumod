@@ -158,6 +158,27 @@ class UniqueKey does CreateOrAlterTableStep {
     }
 }
 
+#| Dropping a unique key.
+class DropUniqueKey does AlterTableStep {
+    has Str @.column-names is required;
+
+    method apply-to(DB::Migration::Declare::Schema $schema,
+                    DB::Migration::Declare::Schema::Table $table,
+                    @problems --> Nil) {
+        if $table.has-unique-key(@!column-names) {
+            $table.drop-unique-key(@!column-names);
+        }
+        else {
+            @problems.push: DB::Migration::Declare::Problem::NoSuchUniqueKey.new:
+                    :table($table.name), :columns(@!column-names);
+        }
+    }
+
+    method hashable-str(--> Str) {
+        join "\0", "DropUniqueKey", @!column-names.sort
+    }
+}
+
 #| Add a foreign key.
 class ForeignKey does CreateOrAlterTableStep {
     has Str @.from is required;
@@ -362,11 +383,11 @@ class Migration {
     #| the changes to the passed in schema object. The schema should be in the state of
     #| having had all previous migrations have been applied, in order that any code
     #| generation that is interested in the current state can do that.
-    method generate-up-sql(DB::Migration::Declare::Schema $schema --> Str) {
+    method generate-up-sql(DB::Migration::Declare::Schema $schema, Any $connection --> Str) {
         my @sql-parts;
         my @problems;
         for @!steps {
-            @sql-parts.push: $schema.target-database.translate-up($_, :$schema);
+            @sql-parts.push: $schema.target-database.translate-up($_, :$schema, :$connection);
             .apply-to($schema, @problems);
         }
         self!report-problems(@problems);

@@ -109,6 +109,17 @@ class DB::Migration::Declare::Schema {
             ?@!unique-key-sets.map(*.sort.List).first(sorted)
         }
 
+        #| Remove a unique key.
+        method drop-unique-key(@columns --> Nil) {
+            my \sorted = @columns.sort.List;
+            with @!unique-key-sets.map(*.sort.List).first(sorted, :k) {
+                @!unique-key-sets.splice($_, 1, []);
+            }
+            else {
+                die "No such unique key";
+            }
+        }
+
         #| Add a foreign key.
         method add-foreign-key(@from, Str $table, @to --> Nil) {
             @!foreign-keys.push(ForeignKey.new(:@from, :$table, :@to));

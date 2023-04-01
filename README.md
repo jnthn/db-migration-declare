@@ -18,7 +18,7 @@ queries neatly wrapped up in Raku subs and thus avoid inline SQL.
 
 **Warning**: The module should currently be considered as a BETA-quality
 minimum viable product. Of note, only Postgres support is currently available,
-migrations can only be applied in the "up" direction, and various quite kinds
+migrations can only be applied in the "up" direction, and various kinds
 of database change are not yet implemented.
 
 ## Setup
@@ -174,6 +174,7 @@ Only within `alter-table` one can use:
 * `rename-column(Str $from, Str $to)` (or `rename-column(Str :$from!, Str :$to!)` or
   `rename-column(Pair $renmaing)`)
 * `drop-column(Str $name)`
+* `drop-unique-key(*@column-names)`
 
 Column types are specified using any of the following functions:
 

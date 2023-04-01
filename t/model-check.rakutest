@@ -1370,4 +1370,77 @@ throws-like
 
 # TODO: rename table column tracked in foreign keys
 
+lives-ok
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null, :unique;
+                    }
+                }
+                migration 'Drop name uniqueness', {
+                    alter-table 'customers', {
+                        drop-unique-key 'name';
+                    }
+                }
+            }
+        },
+        'Can drop a unique key';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null;
+                    }
+                }
+                migration 'Drop name uniqueness', {
+                    alter-table 'customers', {
+                        drop-unique-key 'name';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Drop name uniqueness',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSuchUniqueKey &&
+                    .[0].columns eqv ['name']
+        },
+        'Cannot drop a unique key that never existed';
+
+throws-like
+        {
+            check {
+                migration 'Setup', {
+                    create-table 'customers', {
+                        add-column 'id', integer(), :increments, :primary;
+                        add-column 'name', text(), :!null, :unique;
+                    }
+                }
+                migration 'Drop name uniqueness', {
+                    alter-table 'customers', {
+                        drop-unique-key 'name';
+                    }
+                }
+                migration 'Drop name uniqueness again', {
+                    alter-table 'customers', {
+                        drop-unique-key 'name';
+                    }
+                }
+            }
+        },
+        X::DB::Migration::Declare::MigrationProblem,
+        migration-description => 'Drop name uniqueness again',
+        problems => {
+            .elems == 1 &&
+                    .[0] ~~ DB::Migration::Declare::Problem::NoSuchUniqueKey &&
+                    .[0].columns eqv ['name']
+        },
+        'Cannot drop a unique key multiple times';
+
 done-testing;

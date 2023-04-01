@@ -164,6 +164,22 @@ test-service 'postgres', -> (:$conninfo, *%) {
         is $conn.query('select name from tall_buildings').hashes.elems, 2,
                 'Query using new table name works';
     }
+
+    subtest 'Migration dropping unique key works' => {
+        my $applicator = DB::Migration::Declare::Applicator.new:
+                schema-id => 'test',
+                source => $*PROGRAM.parent.add('test-data/drop-unique-key.raku'),
+                database => DB::Migration::Declare::Database::Postgres.new,
+                connection => $conn;
+        my DB::Migration::Declare::Applicator::MigrationOutcome $status;
+        lives-ok { $status = $applicator.to-latest }, 'No error when running additional migration';
+        is $status.migrations.elems, 1, 'One further migration was applied';
+
+        dies-ok { $conn.query('select name from skyscrapers') },
+                'Query using old table name fails';
+        is $conn.query('select name from tall_buildings').hashes.elems, 2,
+                'Query using new table name works';
+    }
 }
 
 END done-testing;

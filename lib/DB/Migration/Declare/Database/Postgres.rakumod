@@ -176,7 +176,7 @@ class DB::Migration::Declare::Database::Postgres does DB::Migration::Declare::Da
         return qq{CREATE TABLE "$create-table.name()" (\n} ~ @steps.join(",\n") ~ "\n);\n";
     }
 
-    multi method translate-up(DB::Migraion::Declare::Model::AlterTable $alter-table --> Str) {
+    multi method translate-up(DB::Migraion::Declare::Model::AlterTable $alter-table, :$connection --> Str) {
         # Unfortunately, not all table alterations can be added to a single
         # ALTER TABLE (for example, RENAME COLUMN). Thus, emit every one as
         # its own ALTER TABLE statement.
@@ -196,6 +196,25 @@ class DB::Migration::Declare::Database::Postgres does DB::Migration::Declare::Da
                 }
                 when DB::Migraion::Declare::Model::UniqueKey {
                     'ADD ' ~ self!unique-key($_)
+                }
+                when DB::Migraion::Declare::Model::DropUniqueKey {
+                    # Postgres gives constraints a name, and we have to resolve that name to
+                    # be able to drop the constraint.
+                    my @table-constraints = $connection.query(q:to/SQL/, $alter-table.name).hashes;
+                        SELECT conname, array_agg(a.attname) AS columns
+                        FROM pg_constraint c
+                        JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey)
+                        WHERE conrelid = (SELECT oid FROM pg_class WHERE relname = $1)
+                          AND contype = 'u'
+                        GROUP BY conname
+                        SQL
+                    my \sorted = .column-names.sort.List;
+                    with @table-constraints.first({ .<columns>.sort.list eqv sorted }) {
+                        "DROP CONSTRAINT {.<conname>}"
+                    }
+                    else {
+                        die "Could not resolve constraint name";
+                    }
                 }
                 when DB::Migraion::Declare::Model::ForeignKey {
                     'ADD ' ~ self!foreign-key($_)
